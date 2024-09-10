@@ -1,0 +1,20 @@
+Step 1: Install Flask-SQLAlchemy
+pip install Flask-SQLAlchemy pymysql
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://<db_username>:<db_password>@<rds_endpoint>/<db_name>'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://<db_username>:<db_password>@<rds_endpoint>/<db_name>'
+
+
+Step 2: Modify Amazon RDS Security Group
+By default, Amazon RDS restricts access to the database instance. You need to allow incoming traffic from the IP address where your Flask app is hosted (or from anywhere if you're testing locally).
+
+Go to RDS Dashboard.
+Select your RDS instance, then click on the Security Groups link.
+In the Security Group settings:
+Add a new inbound rule:
+Type: MySQL/Aurora (for MySQL) or PostgreSQL (for PostgreSQL).
+Source: Your public IP address or 0.0.0.0/0 (for local testing, but not recommended for production).
+Save the security group settings.
+
+
+I do this later after we create a good sql database relation
