@@ -1,0 +1,28 @@
+Install Yarn Globally (if not already installed)
+
+npm install -g yarn
+
+To run the development:
+
+cd worknest
+yarn dev
+
+To run storybook:
+yarn storybook
+
+why we need storybook?
+
+Creating a Storybook for your project can be highly beneficial, especially for projects involving UI components like your Next.js and Tailwind CSS setup. Here’s why you might want to integrate Storybook into your development workflow:
+
+1. Isolated Component Development
+
+Storybook allows you to develop UI components in isolation from the rest of the application. This is especially useful when working on complex components or when you need to focus on specific elements without worrying about the entire app's structure.
+You can iterate on individual UI components without running the full app.
+It speeds up development, especially if your Next.js app has a large codebase or complex routing.
+
+2. Component Library and Documentation
+
+Storybook automatically generates a visual documentation site for your components. As you build stories (which are essentially examples of how your components can be used), you create a living style guide.
+You create a centralized place for all the components in your project.
+It acts as a component library that you and your team can reference when working on UI.
+It's useful for future developers or designers who might join the project.
