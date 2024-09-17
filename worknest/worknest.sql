@@ -1,15 +1,18 @@
 DROP TABLE IF EXISTS employee;
-CREATE TABLE employee(
-   Staff_ID          INTEGER  NOT NULL PRIMARY KEY 
-  ,Staff_FName       VARCHAR(10) NOT NULL
-  ,Staff_LName       VARCHAR(10) NOT NULL
-  ,Dept              VARCHAR(11) NOT NULL
-  ,Position          VARCHAR(23) NOT NULL
-  ,Country           VARCHAR(10) NOT NULL
-  ,Email             VARCHAR(34) NOT NULL
-  ,Reporting_Manager INTEGER  NOT NULL
-  ,Role              INTEGER  NOT NULL
+
+CREATE TABLE employee (
+   Staff_ID          INTEGER  NOT NULL PRIMARY KEY,
+   Staff_FName       VARCHAR(50) NOT NULL,
+   Staff_LName       VARCHAR(50) NOT NULL,
+   Dept              VARCHAR(50) NOT NULL,
+   Position          VARCHAR(50) NOT NULL,
+   Country           VARCHAR(50) NOT NULL,
+   Email             VARCHAR(50) NOT NULL,
+   Reporting_Manager INTEGER,
+   Role              INTEGER  NOT NULL,
+   FOREIGN KEY (Reporting_Manager) REFERENCES employee(Staff_ID)
 );
+
 INSERT INTO employee(Staff_ID,Staff_FName,Staff_LName,Dept,Position,Country,Email,Reporting_Manager,Role) VALUES (130002,'Jack','Sim','CEO','MD','Singapore','jack.sim@allinone.com.sg',130002,1);
 INSERT INTO employee(Staff_ID,Staff_FName,Staff_LName,Dept,Position,Country,Email,Reporting_Manager,Role) VALUES (140001,'Derek','Tan','Sales','Director','Singapore','Derek.Tan@allinone.com.sg',130002,3);
 INSERT INTO employee(Staff_ID,Staff_FName,Staff_LName,Dept,Position,Country,Email,Reporting_Manager,Role) VALUES (150008,'Eric','Loh','Solutioning','Director','Singapore','Eric.Loh@allinone.com.sg',130002,3);
