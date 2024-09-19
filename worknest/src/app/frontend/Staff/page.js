@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import StaffCalendarPage from '@/app/frontend/components/staffcalendarpage';
+import StaffCalendarPage from '../components/staffcalendarpage';
 
 function App() {
   return (
