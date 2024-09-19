@@ -3,10 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from db import db  # Import the shared db instance
-from employee import Employees
-from wfh import WFH
-from department import Department
+from worknest.src.app.backend.db import db  # Import the shared db instance
+from worknest.src.app.backend.employee import Employees
+from worknest.src.app.backend.wfh import WFH
+from worknest.src.app.backend.department import Department
 
 load_dotenv()
 
