@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
+from db import db  # Import the shared db instance
 
 load_dotenv()
 
@@ -15,20 +16,24 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db.init_app(app)
 
 class Employees(db.Model):
     __tablename__ = "employee"
     
     staff_id = db.Column(db.Integer, primary_key=True)
-    staff_fname = db.Column(db.String(100))
-    staff_lname = db.Column(db.String(100))
-    dept = db.Column(db.String(100))
-    position = db.Column(db.String(100))
-    country = db.Column(db.String(100))
-    email = db.Column(db.String(100))
-    reporting_manager = db.Column(db.Integer)
-    role = db.Column(db.Integer)
+    staff_fname = db.Column(db.String(50))
+    staff_lname = db.Column(db.String(50))
+    dept = db.Column(db.String(50))
+    position = db.Column(db.String(50))
+    country = db.Column(db.String(50))
+    email = db.Column(db.String(50))
+    reporting_manager = db.Column(db.Integer, db.ForeignKey('employee.staff_id'))
+    role = db.Column(db.Integer, db.ForeignKey('role.role_id'))
+    
+    # # Define relationships
+    manager = db.relationship('Employees', remote_side=[staff_id], backref='employees')
+    
 
     def to_dict(self):
         return {
@@ -42,6 +47,36 @@ class Employees(db.Model):
             'reporting_manager': self.reporting_manager,
             'role': self.role
         }
+    def __init__(self , staff_id, staff_fname, staff_lname, dept, position, country, email, reporting_manager, role):
+        self.staff_id = staff_id
+        self.staff_fname = staff_fname
+        self.staff_lname = staff_lname
+        self.dept = dept
+        self.position = position
+        self.country = country
+        self.email = email
+        self.reporting_manager = reporting_manager
+        self.role = role
+
+    #getters
+    def getStaffId(self):
+        return self.staff_id
+    def getFname(self):
+        return self.staff_fname
+    def getLname(self):
+        return self.staff_lname
+    def getDept(self):
+        return self.dept
+    def getPosition(self):
+        return self.position
+    def getCountry(self):
+        return self.country
+    def getEmail(self):
+        return self.email
+    def getReportingManager(self):
+        return self.reporting_manager
+    def getRole(self):
+        return self.role
 
 @app.route("/employee")
 def get_all():

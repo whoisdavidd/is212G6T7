@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Event</title>
+</head>
+<body>
+    <h1>Add New Event</h1>
+
+    <form method="POST" action="/event" id="eventForm">
+        <label for="staff_id">Select Employee:</label>
+        <select name="staff_id" id="staff_id" required>
+            {% for employee in employees %}
+            <option value="{{ employee.staff_id }}">{{ employee.staff_fname }} {{ employee.staff_lname }} ({{ employee.email }})</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="event_name">Event Name:</label>
+        <input type="text" id="event_name" name="event_name" required><br><br>
+
+        <label for="event_date">Event Date:</label>
+        <input type="date" id="event_date" name="event_date" required><br><br>
+
+        <label for="event_type">Event Type:</label>
+        <input type="text" id="event_type" name="event_type" placeholder="e.g. Meeting, Review"><br><br>
+
+        <input type="submit" value="Add Event">
+    </form>
+
+    <script>
+        document.getElementById('eventForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const jsonData = {};
+            formData.forEach((value, key) => jsonData[key] = value);
+
+            const response = await fetch('/event', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(jsonData)
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+        });
+    </script>
+</body>
+</html>
