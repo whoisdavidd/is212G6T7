@@ -102,7 +102,7 @@
 
 "use client";
 import React, { useState } from 'react';
-import StaffCalendarPage from './frontend/components/StaffCalendarPage';
+import StaffCalendarPage from '../app/frontend/components/StaffCalendarPage';
 
 function App() {
   return (
