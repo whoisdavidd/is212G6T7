@@ -31,6 +31,7 @@ class Event(db.Model):
     reporting_manager_id = db.Column(db.Integer)
     department = db.Column(db.String(50),db.ForeignKey('department.department'), nullable=False)  # ForeignKey to Department
     event_type = db.Column(db.String(50))
+    event_status = db.Column(db.String(20), nullable=False, default='Pending')
     # Add relationship to WFH table
     wfh_records = db.relationship('WFH', backref='event', cascade="all, delete", lazy=True)
 
@@ -52,8 +53,22 @@ class Event(db.Model):
             'reporting_manager': self.reporting_manager,
             'reporting_manager_id': self.reporting_manager_id,
             'department': self.department,
-            'event_type': self.event_type
+            'event_type': self.event_type,
+            'event_status': self.event_status
         }
+
+
+def get_current_user():
+    # Placeholder function
+    # If we are using sessions:
+    # user_id = session.get('staff_id')
+    # If we are using tokens (e.g., JWT):
+    # Extract token from Authorization header and decode it
+    # For now we assume a dummy user okie
+    return {
+        'staff_id': 1,
+        'role': 'Staff'  # or 'Manager', 'Director'
+    }
 
 # Route to add an event
 @app.route('/event', methods=['POST'])
@@ -134,6 +149,47 @@ def display_event_form():
 def get_events():
     events = Event.query.all()
     return jsonify([event.to_dict() for event in events]), 200
+
+# Route to withdraw an event
+@app.route('/event/<int:event_id>/withdraw', methods=['POST'])
+def withdraw_event(event_id):
+    data = request.get_json()
+
+    # Get the current user's ID and role from the session or token
+    # For this example, we'll assume you have a function get_current_user()
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    user_id = current_user['staff_id']
+    user_role = current_user['role']  # e.g., 'Staff', 'Manager', 'Director'
+
+    # Fetch the event
+    event = Event.query.filter_by(event_id=event_id).first()
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+
+    # Authorization check
+    if user_id != event.staff_id and user_role not in ['Manager', 'Director']:
+        return jsonify({'error': 'Unauthorized access'}), 403
+
+    # Check if the event is approved
+    if event.status != 'Approved':
+        return jsonify({'error': 'Only approved events can be withdrawn'}), 400
+
+    # Update the event status to 'Withdrawn'
+    event.status = 'Withdrawn'
+    db.session.commit()
+
+    # Update WFH record if necessary
+    wfh_record = WFH.query.filter_by(event_id=event_id).first()
+    if wfh_record:
+        wfh_record.approve_status = 'Withdrawn'
+        db.session.commit()
+
+    return jsonify({'message': 'Work arrangement withdrawn successfully'}), 200
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
