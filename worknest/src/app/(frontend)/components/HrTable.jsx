@@ -14,7 +14,7 @@ const columns = [
 
 const paginationModel = { page: 0, pageSize: 5 };
 
-export default function DataTable({rows}) {
+export default function HrTable({ rows }) {
   return (
     <Paper
       elevation={3}  // Adds shadow for better depth
@@ -29,15 +29,16 @@ export default function DataTable({rows}) {
       <Typography variant="h6" sx={{ marginBottom: '10px' }}>
         Departments Overview
       </Typography>
+
+      {/* DataGrid with Filtering Enabled */}
       <DataGrid
         rows={rows}
         columns={columns}
         getRowId={(row) => row.staff_id}  // Set 'staff_id' as the unique row identifier
         initialState={{ pagination: { paginationModel } }}
         pageSizeOptions={[5, 10]}
-        checkboxSelection
-        disableColumnMenu  // Hide the column menu for a cleaner look
         disableSelectionOnClick  // Disable row selection on click
+        filterMode="client"  // Enable client-side filtering
         sx={{
           '& .MuiDataGrid-root': {
             border: 'none',

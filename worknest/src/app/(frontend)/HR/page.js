@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { PieChart } from "@mui/x-charts/PieChart";
 import ResponsiveAppBar from "../components/ResponsiveAppBar";
-import DataTable from "../components/DataTable";
+import HrTable from "../components/HrTable";
 
 
 const HR = () => {
@@ -67,7 +67,7 @@ const HR = () => {
         )}
       </div>
       <div>
-        <DataTable  rows = {tableData} />
+        <HrTable  rows = {tableData} />
       </div>
     </>
   );
