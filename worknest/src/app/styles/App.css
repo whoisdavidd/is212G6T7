@@ -1,9 +1,8 @@
 .staff-calendar-page {
-    display: grid;
-    grid-template-columns: 1fr 3fr 1fr;
-    gap: 20px;
-    padding: 20px;
-  }
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
   
   .sidebar {
     background-color: #f8f9fa;
@@ -70,5 +69,31 @@
     padding: 10px;
     border: none;
     cursor: pointer;
+  }
+
+  .main-container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh; /* Full screen height */
+  }
+  
+  .calendar-container {
+    flex: 3; /* Takes 3/4 of the available width */
+    padding-right: 20px; /* Adds spacing between the calendar and summary */
+  }
+  
+  .summary-container {
+    flex: 1; /* Takes 1/4 of the available width */
+    border-left: 1px solid #ddd;
+    padding-left: 20px;
+  }
+  
+  .action-buttons {
+    margin-top: 20px;
+  }
+  
+  .action-buttons button {
+    margin-right: 10px;
   }
   
