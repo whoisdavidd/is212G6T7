@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 import os
 from flask_cors import CORS
 from worknest.src.app.backend.db import db  # Import the shared db instance
-from worknest.src.app.backend.employee import Employees
-from worknest.src.app.backend.wfh import WFH
-from worknest.src.app.backend.department import Department
+from worknest.src.app.backend.employee.employee import Employees
+from worknest.src.app.backend.wfh.wfh import WFH
+from worknest.src.app.backend.department.department import Department
 
 load_dotenv()
 
