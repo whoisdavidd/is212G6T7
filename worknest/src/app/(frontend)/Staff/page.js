@@ -1,10 +1,12 @@
 "use client";
 import React, { useState } from 'react';
 import StaffCalendarPage from '../components/StaffCalendarPage';
+import ResponsiveAppBar from '../components/ResponsiveAppBar';
 
 function App() {
   return (
     <div className="App">
+      <ResponsiveAppBar />
       <StaffCalendarPage />
     </div>
   );
