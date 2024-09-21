@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import StaffCalendarPage from '../components/StaffCalendarPage';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 
-function App() {
+function Staff() {
   return (
     <div className="App">
       <ResponsiveAppBar />
@@ -11,5 +11,5 @@ function App() {
     </div>
   );
 }
+export default Staff;
 
-export default App;
