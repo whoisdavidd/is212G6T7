@@ -1,10 +1,48 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
+
+
+
 
 export default function HomePage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        // Handle successful login (e.g., save a token or redirect)
+        console.log("Login successful:", data);
+        if(data.data.department === "HR"){
+          window.location.href = "/HR";  // Redirect to HR page
+        }else {
+          window.location.href = "/dashboard";  // Redirect to HR page
+        }
+      } else {
+        // Handle login error
+        setErrorMessage(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      setErrorMessage("An error occurred. Please try again.");
+    }
+  };
+
   return (
     <div className="relative h-screen flex items-center">
       {/* Background Image */}
-    
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: 'url("/background.svg")' }}
@@ -16,20 +54,29 @@ export default function HomePage() {
 
       <div className="relative z-10 w-auto max-w-md ml-auto mr-16 flex flex-col justify-center p-8 bg-white bg-opacity-90 shadow-lg rounded-lg">
         <h1 className="text-4xl font-bold text-center mb-6">Welcome Back</h1>
-        <form className="w-full space-y-4">
+        {errorMessage && (
+          <p className="text-red-500 text-center mb-4">{errorMessage}</p>
+        )}
+        <form className="w-full space-y-4" onSubmit={handleLogin}>
           <input
-            type="text"
-            placeholder="Username"
+            type="email"
+            placeholder="Email"
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <input
             type="password"
             placeholder="Password"
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
           />
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700"
+            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700" onClick = {handleLogin}
           >
             Login
           </button>

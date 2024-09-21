@@ -30,6 +30,7 @@ class Employees(db.Model):
     email = db.Column(db.String(50))
     reporting_manager = db.Column(db.Integer, db.ForeignKey('employee.staff_id'))
     role = db.Column(db.Integer, db.ForeignKey('role.role_id'))
+    password = db.Column(db.String(50))
     
     # # Define relationships
     manager = db.relationship('Employees', remote_side=[staff_id], backref='employees')
@@ -45,9 +46,11 @@ class Employees(db.Model):
             'country': self.country,
             'email': self.email,
             'reporting_manager': self.reporting_manager,
-            'role': self.role
+            'password': self.password,
+            'role': self.role,
+           
         }
-    def __init__(self , staff_id, staff_fname, staff_lname, dept, position, country, email, reporting_manager, role):
+    def __init__(self , staff_id, staff_fname, staff_lname, dept, position, country, email, reporting_manager, role,password):
         self.staff_id = staff_id
         self.staff_fname = staff_fname
         self.staff_lname = staff_lname
@@ -56,7 +59,9 @@ class Employees(db.Model):
         self.country = country
         self.email = email
         self.reporting_manager = reporting_manager
+        self.password = password 
         self.role = role
+        
 
     #getters
     def getStaffId(self):
@@ -97,8 +102,29 @@ def get_all():
             "message": "There are no employees."
         }
     ), 404
-
-
+#Login 
+@app.route("/", methods=["POST"])
+def authentication():
+    email = request.json.get("email")
+    password = request.json.get("password")
+    employee = Employees.query.filter_by(email=email, password=password).first()
+    if employee:
+        return jsonify(
+            {
+                "code": 200,
+                "data": {
+                    "employee": employee.to_dict(),
+                    "department": employee.dept,
+                    "position": employee.position
+                }
+            }
+        )
+    return jsonify(
+        {
+            "code": 404,
+            "message": "Employee not found."
+        }
+    ), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
