@@ -2,14 +2,16 @@
 import React, { useState } from 'react';
 import StaffCalendarPage from '../components/StaffCalendarPage';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
-import Test from '../components/Test';
+import StaffCalendar from '../components/StaffCalendar';
+import Summary from '../components/Summary';
 
 function App() {
   return (
     <div className="App">
       <ResponsiveAppBar />
-      <StaffCalendarPage />
-      <Test />
+      {/* <StaffCalendarPage /> */}
+      <StaffCalendar />
+      <Summary />
 
     </div>
   );

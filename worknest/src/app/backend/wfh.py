@@ -84,5 +84,20 @@ def display_wfh_status():
     # Pass the wfh_requests list to the HTML template
     return render_template('wfhStatus.html', wfh_requests=wfh_requests)
 
+########################################
+@app.route('/events/<int:staff_id>', methods=['GET'])
+def get_events_by_staff(staff_id):
+    # Query WFH events by staff ID
+    wfh_requests = WFH.query.filter_by(staff_id=staff_id).all()
+
+    if not wfh_requests:
+        return jsonify({'error': 'No events found for this staff member'}), 404
+
+    # Convert the events to a list of dictionaries
+    events = [wfh.to_dict() for wfh in wfh_requests]
+
+    return jsonify(events), 200
+#######################################
+
 if __name__ == '__main__':
     app.run(debug=True)
