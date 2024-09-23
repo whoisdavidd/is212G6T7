@@ -2,16 +2,18 @@ import * as React from 'react';
 import {
   ScheduleComponent, ViewsDirective, ViewDirective, Day, Week, WorkWeek, Month, Agenda, Inject
 } from '@syncfusion/ej2-react-schedule';
+import { registerLicense } from '@syncfusion/ej2-base';
  
 const Test = () => {
-  const data = [{
-    Id: 1,
-    Subject: 'Scrum Meeting',
-    Location: 'Office',
-    StartTime: new Date(2024, 8, 20, 9, 30),
-    EndTime: new Date(2024, 8, 20, 10, 30),
-    RecurrenceRule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;INTERVAL=1'
-  }];
+    registerLicense("Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1NpR2NGfV5ycEVHYlZSTHxfRU0SNHVRdkdnWXZccHRUQ2NZVkVwW0A=");
+    const data = [{
+        Id: 1,
+        Subject: 'Scrum Meeting',
+        Location: 'Office',
+        StartTime: new Date(2024, 8, 20, 9, 30),
+        EndTime: new Date(2024, 8, 20, 10, 30),
+        RecurrenceRule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;INTERVAL=1'
+    }];
  
   return (
     <div>
