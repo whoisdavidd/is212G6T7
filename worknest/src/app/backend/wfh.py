@@ -1,9 +1,8 @@
-from flask import Flask, request, jsonify,render_template
+from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from worknest.src.app.backend.db import db  # Import the shared db instance
 load_dotenv()
 
 app = Flask(__name__)
@@ -12,9 +11,9 @@ db_url = os.getenv("DATABASE_URL")
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Javanchok13@localhost:5432/employee'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
+db = SQLAlchemy(app)
 
 class WFH(db.Model):
     __tablename__ = 'wfh'
@@ -30,7 +29,7 @@ class WFH(db.Model):
     approve_status = db.Column(db.String(50))  # Approval status
 
     # Initialize the attributes
-    def __init__(self, staff_id, department,event_id, event_name, event_date, reporting_manager, reporting_manager_id, approve_status):
+    def __init__(self, staff_id, department, event_id, event_name, event_date, reporting_manager, reporting_manager_id, approve_status):
         self.staff_id = staff_id
         self.department = department
         self.event_id = event_id
@@ -52,39 +51,7 @@ class WFH(db.Model):
             'reporting_manager_id': self.reporting_manager_id,
             'approve_status': self.approve_status
         }
-@app.route('/wfhStatus', methods=['POST'])
-def update_wfh_status():
-    data = request.get_json()
 
-    # Validate the request data
-    if not data or 'staff_id' not in data or 'approve_status' not in data:
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    # Get the staff ID and the new approval status
-    staff_id = data['staff_id']
-    new_status = data['approve_status']
-
-    # Find the WFH request for the given staff_id
-    wfh_request = WFH.query.filter_by(staff_id=staff_id).first()
-
-    if not wfh_request:
-        return jsonify({'error': 'WFH request not found'}), 404
-
-    # Update the approval status
-    wfh_request.approve_status = new_status
-    db.session.commit()
-
-    return jsonify({'message': 'WFH request updated successfully', 'wfh': wfh_request.to_dict()}), 200
-
-@app.route('/wfh_status', methods=['GET'])
-def display_wfh_status():
-    # Query all WFH requests
-    wfh_requests = WFH.query.all()
-    
-    # Pass the wfh_requests list to the HTML template
-    return render_template('wfhStatus.html', wfh_requests=wfh_requests)
-
-########################################
 @app.route('/events/<int:staff_id>', methods=['GET'])
 def get_events_by_staff(staff_id):
     # Query WFH events by staff ID
@@ -96,8 +63,8 @@ def get_events_by_staff(staff_id):
     # Convert the events to a list of dictionaries
     events = [wfh.to_dict() for wfh in wfh_requests]
 
+    # Return JSON response with event details
     return jsonify(events), 200
-#######################################
 
 if __name__ == '__main__':
     app.run(debug=True)
