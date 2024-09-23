@@ -17,18 +17,20 @@ function StaffCalendar({ staffId }) {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/events/${staffId}`);  // Fetch events from Flask API
+        const response = await fetch(`http://localhost:5000/events/123`);  // Fetch events from Flask API
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }
         const data = await response.json();
+        
         // Map data to the calendar's event structure
         const mappedEvents = data.map(event => ({
-          id: event.event_id,
-          title: event.event_name,
-          start: event.event_date,  // Assuming the event_date is in 'YYYY-MM-DD' format
-          end: event.event_date,    // For single-day events, start and end are the same
+          id: String(event.event_id),                      // Event ID
+          title: event.event_name,                 // Event name mapped to title
+          start: event.event_date,       // Assuming event_date is in 'YYYY-MM-DD' format
+          end: event.event_date,         // For single-day events, start and end are the same
         }));
+        console.log('Mapped Events:', mappedEvents);
         setEvents(mappedEvents);
         setLoading(false);
       } catch (error) {
