@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from worknest.src.app.backend.db import db  # Import the shared db instance
 from worknest.src.app.backend.employee.employee import Employees
 from worknest.src.app.backend.wfh.wfh import WFH
 from worknest.src.app.backend.department.department import Department
@@ -18,7 +17,7 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
+db = SQLAlchemy(app)
 
 class Event(db.Model):
     __tablename__ = 'event'
@@ -127,8 +126,11 @@ def add_event():
 def display_event_form():
     # Query the Employees table and pass the data to the template
     employees = Employees.query.all()
-    return render_template('add_event.html', employees=employees)
+     # Convert employees data to a JSON serializable format
+    employee_data = [{'id': e.id, 'name': e.name} for e in employees]
 
+    # Return the employee data as JSON
+    return jsonify(employee_data)
 # Route to get all events
 @app.route('/events', methods=['GET'])
 def get_events():

@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from worknest.src.app.backend.db import db  # Import the shared db instance
+
 
 load_dotenv()
 
@@ -16,7 +16,7 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
+db = SQLAlchemy(app)
 
 class Employees(db.Model):
     __tablename__ = "employee"

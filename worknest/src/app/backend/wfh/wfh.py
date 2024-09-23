@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from worknest.src.app.backend.db import db  # Import the shared db instance
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -14,7 +14,7 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
+db = SQLAlchemy(app)
 
 class WFH(db.Model):
     __tablename__ = 'wfh'
@@ -81,8 +81,10 @@ def display_wfh_status():
     # Query all WFH requests
     wfh_requests = WFH.query.all()
     
-    # Pass the wfh_requests list to the HTML template
-    return render_template('wfhStatus.html', wfh_requests=wfh_requests)
+    wfh_data = [{'id': w.id, 'employee_id': w.employee_id, 'status': w.status, 'date': w.date} for w in wfh_requests]
+
+    # Return the data as JSON
+    return jsonify(wfh_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
