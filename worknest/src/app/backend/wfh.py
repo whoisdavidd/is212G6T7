@@ -52,7 +52,7 @@ class WFH(db.Model):
             'approve_status': self.approve_status
         }
 
-@app.route('/events/<int:staff_id>', methods=['GET'])
+@app.route('/wfh/<int:staff_id>', methods=['GET'])
 def get_events_by_staff(staff_id):
     # Query WFH events by staff ID
     wfh_requests = WFH.query.filter_by(staff_id=staff_id).all()
