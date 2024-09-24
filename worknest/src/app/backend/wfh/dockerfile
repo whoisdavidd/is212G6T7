@@ -1,0 +1,34 @@
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
+
+# Set environment variable to ensure output is flushed immediately
+ENV PYTHONUNBUFFERED=1
+
+# Set PYTHONPATH to include /usr/src/app so Python can find the modules
+ENV PYTHONPATH=/usr/src/app
+
+
+
+# Set the working directory in the container
+WORKDIR /usr/src/app/backend/wfh
+
+# Copy the current directory contents into the container at /app
+COPY ./department.py /usr/src/app/backend/wfh/
+
+# Install gcc and other dependencies for building python packages like psycopg2
+RUN apt-get update \
+    && apt-get install -y gcc python3-dev libpq-dev \
+    && apt-get clean
+
+# Install Python dependencies from requirements.txt
+COPY requirements.txt /app/backend/department/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/department/requirements.txt
+
+# Expose the Flask port (default is 5000)
+EXPOSE 5000
+# Define the command to start the Flask app
+CMD ["python", "wfh.py"]
+
+
+#docker build command docker build -t department .
+# docker run --env-file /Users/davidkumar/Documents/GitHub/is212G6T7/worknest/worknest/.env department (run from absolute path)
