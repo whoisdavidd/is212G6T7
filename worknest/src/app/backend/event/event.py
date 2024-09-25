@@ -6,6 +6,7 @@ from flask_cors import CORS
 from worknest.src.app.backend.employee.employee import Employees
 from worknest.src.app.backend.wfh.wfh import WFH
 from worknest.src.app.backend.department.department import Department
+from src.app.backend.db import db
 
 load_dotenv()
 
@@ -17,7 +18,8 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+# 
+db.init_app(app)
 
 class Event(db.Model):
     __tablename__ = 'event'
@@ -25,18 +27,20 @@ class Event(db.Model):
     event_id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('employee.staff_id'), nullable=False)
     event_name = db.Column(db.String(50), nullable=False)
-    event_date = db.Column(db.Date, nullable=False)
+    start_date = db.Column(db.Date, nullable=False)  # Added start_date field
+    end_date = db.Column(db.Date, nullable=False)    # Added end_date field
+    reason = db.Column(db.String(255), nullable=False)  # Added reason field
     reporting_manager = db.Column(db.String(50))
     reporting_manager_id = db.Column(db.Integer)
-    department = db.Column(db.String(50),db.ForeignKey('department.department'), nullable=False)  # ForeignKey to Department
-    event_type = db.Column(db.String(50))
-    # Add relationship to WFH table
-    wfh_records = db.relationship('WFH', backref='event', cascade="all, delete", lazy=True)
-
-    def __init__(self, staff_id, event_name, event_date, reporting_manager, reporting_manager_id, department, event_type):
+    department = db.Column(db.String(50), db.ForeignKey('department.department'), nullable=False)  # ForeignKey to Department
+    event_type = db.Column(db.String(50))  # Optional field to categorize the event (WFH, etc.)
+    
+    def __init__(self, staff_id, event_name, start_date, end_date, reason, reporting_manager, reporting_manager_id, department, event_type):
         self.staff_id = staff_id
         self.event_name = event_name
-        self.event_date = event_date
+        self.start_date = start_date
+        self.end_date = end_date
+        self.reason = reason
         self.reporting_manager = reporting_manager
         self.reporting_manager_id = reporting_manager_id
         self.department = department
@@ -47,7 +51,9 @@ class Event(db.Model):
             'event_id': self.event_id,
             'staff_id': self.staff_id,
             'event_name': self.event_name,
-            'event_date': str(self.event_date),
+            'start_date': str(self.start_date),
+            'end_date': str(self.end_date),
+            'reason': self.reason,
             'reporting_manager': self.reporting_manager,
             'reporting_manager_id': self.reporting_manager_id,
             'department': self.department,
@@ -61,7 +67,7 @@ def add_event():
     data = request.get_json()
 
     # Check if all required fields are present
-    if not data or 'staff_id' not in data or 'event_name' not in data or 'event_date' not in data:
+    if not data or 'staff_id' not in data or 'event_name' not in data or 'start_date' not in data or 'end_date' not in data or 'reason' not in data:
         return jsonify({'error': 'Missing event details'}), 400
 
     # Fetch the employee using Employees.query, no need to reassign Employees
@@ -76,7 +82,7 @@ def add_event():
     if not department:
         return jsonify({'error': 'Department not found'}), 404
 
-    # Reduce the WFH quota if the event type is 'WFH'
+    #Reduce the WFH quota if the event type is 'WFH'
     if data.get('event_type') == 'WFH':
         if department.wfh_quota > 0:
             department.wfh_quota -= 1  # Reduce the quota by 1 day
@@ -87,7 +93,9 @@ def add_event():
     new_event = Event(
         staff_id=data['staff_id'],
         event_name=data['event_name'],
-        event_date=data['event_date'],
+        start_date=data['start_date'],
+        end_date=data['end_date'],
+        reason=data['reason'],
         reporting_manager=employee.staff_fname + ' ' + employee.staff_lname,
         reporting_manager_id=employee.reporting_manager,
         department=employee.dept,
@@ -102,7 +110,7 @@ def add_event():
         department=new_event.department,
         event_id=new_event.event_id,
         event_name=data['event_name'],
-        event_date=data['event_date'],
+        event_date=data['start_date'],
         reporting_manager=new_event.reporting_manager,
         reporting_manager_id=new_event.reporting_manager_id,
         approve_status='Pending'  # Default status
@@ -110,10 +118,11 @@ def add_event():
     db.session.add(new_wfh)
     db.session.commit()
     
-    new_dept = Department(
+    new_dept = Department( #need to fix this logic
         staff_id=data['staff_id'],
         department=new_event.department,
-        wfh_quota=department.wfh_quota
+        wfh_quota=department.wfh_quota,
+        location=data['event_name']
     )
     db.session.add(new_dept)
     db.session.commit()
@@ -138,4 +147,4 @@ def get_events():
     return jsonify([event.to_dict() for event in events]), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5001, debug=True)

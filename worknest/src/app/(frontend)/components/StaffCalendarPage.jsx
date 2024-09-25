@@ -15,7 +15,6 @@ const StaffCalendarPage = () => {
         <h2>Overview</h2>
         <Calendar onChange={setDate} value={date} />
         <div className="action-buttons">
-          <button className="btn-request">Request for WFH</button>
           <button className="btn-approval">Pending approval</button>
         </div>
       </div>

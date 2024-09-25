@@ -24,11 +24,7 @@ RUN apt-get update \
 COPY requirements.txt /app/backend/department/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/department/requirements.txt
 
-# Expose the Flask port (default is 5000)
-EXPOSE 5000
 
-# Set environment variable to allow external connections to the Flask app
-ENV FLASK_RUN_HOST=0.0.0.0
 
 # Define the command to start the Flask app
 CMD ["python", "department.py"]

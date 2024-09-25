@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-
+from src.app.backend.db import db
 
 load_dotenv()
 
@@ -16,7 +16,8 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
+db.init_app(app)
 
 class Employees(db.Model):
     __tablename__ = "employee"
@@ -115,7 +116,8 @@ def authentication():
                 "data": {
                     "employee": employee.to_dict(),
                     "department": employee.dept,
-                    "position": employee.position
+                    "staff_id": employee.staff_id,
+                    "role": employee.role
                 }
             }
         )
@@ -125,6 +127,25 @@ def authentication():
             "message": "Employee not found."
         }
     ), 404
+#Manager
+@app.route("/managers/<int:staff_id>", methods=["GET"])
+def GetManagers(staff_id):
+    employee = Employees.query.filter_by(staff_id=staff_id).first()
+    manager = Employees.query.filter_by(staff_id=employee.reporting_manager).first()
+    if manager:
+        return jsonify(
+           {
+            "manager_name": f"{manager.staff_fname} {manager.staff_lname}",
+            "manager_id": manager.staff_id
+            }
+        )
+    return jsonify(
+        {
+            "code": 404,
+            "message": "Manager not found."
+        }
+    ), 404
+
 
 if __name__ == "__main__":
     app.run(debug=True)
