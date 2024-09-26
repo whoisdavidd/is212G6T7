@@ -5,9 +5,9 @@ import HrTable from '../(frontend)/components/HrTable';  // Adjust the path to w
 
 // Mock data for testing
 const mockRows = [
-    { staff_id: 1, department: 'HR', location: 'Office' },
+    { staff_id: 1, department: 'HR', location: 'OFFICE' },
     { staff_id: 2, department: 'Engineering', location: 'WFH' },
-    { staff_id: 3, department: 'Sales', location: 'Office' },
+    { staff_id: 3, department: 'Sales', location: 'OFFICE' },
     { staff_id: 4, department: 'Marketing', location: 'WFH' },
   ];
   
