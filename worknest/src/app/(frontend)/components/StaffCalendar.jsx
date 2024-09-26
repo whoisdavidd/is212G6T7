@@ -292,7 +292,7 @@ export default function StaffCalendar() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/events/${hardcodedStaffId}`);
+        const response = await fetch(`http://localhost:5001/events/${hardcodedStaffId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }
@@ -320,7 +320,7 @@ export default function StaffCalendar() {
   const handleAddEvent = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/add_event', {
+      const response = await fetch('http://localhost:5001/add_event', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

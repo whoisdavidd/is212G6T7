@@ -11,7 +11,7 @@ function App() {
       <ResponsiveAppBar />
       {/* <StaffCalendarPage /> */}
       <StaffCalendar />
-      {/* <Summary /> */}
+      <Summary />
 
     </div>
   );

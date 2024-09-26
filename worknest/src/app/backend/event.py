@@ -132,4 +132,4 @@ def get_events_by_staff_id(staff_id):
     return jsonify([event.to_dict() for event in events]), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5001, debug=True)
