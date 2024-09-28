@@ -18,18 +18,28 @@ def callback(ch, method, properties, body):
     wfh_date = message['wfh_date']
     comment = message['comment']
     
-    # Prepare the email content based on the action
+    # Prepare the email content for the requester based on the action
     if action == 'approved':
-        subject = "Your request has been approved"
-        body = f"Your request for WFH on {wfh_date} has been approved. Comments: {comment}"
+        requester_subject = "Your request has been approved"
+        requester_body = f"Your request for WFH on {wfh_date} has been approved. Comments: {comment}"
     else:  # action == 'rejected'
-        subject = "Your request has been rejected"
-        body = f"Your request for WFH on {wfh_date} has been rejected. Comments: {comment}"
+        requester_subject = "Your request has been rejected"
+        requester_body = f"Your request for WFH on {wfh_date} has been rejected. Comments: {comment}"
+
+    # Prepare the email content for the approver based on the action
+    if action == 'approved':
+        approver_subject = "You have approved the request"
+        approver_body = f"You have approved the WFH request for {wfh_date} from the requester. Comments: {comment}"
+    else:  # action == 'rejected'
+        approver_subject = "You have rejected the request"
+        approver_body = f"You have rejected the WFH request for {wfh_date} from the requester. Comments: {comment}"
 
     # Send email to requester
-    send_email_notification(requester_email, subject, body)
-    # send email to approver as well
-    send_email_notification(approver_email, subject, body)
+    send_email_notification(requester_email, requester_subject, requester_body)
+    
+    # Send email to approver
+    send_email_notification(approver_email, approver_subject, approver_body)
+
 
 
 
