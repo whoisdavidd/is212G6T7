@@ -1,0 +1,45 @@
+version: '3.8'
+
+networks:
+  worknest_default:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
+
+services:
+  approval_service:
+    build:
+      context: ./src/app/backend/approval 
+    command: python approval_service.py
+    depends_on:
+      - rabbitmq
+    environment:
+      - FLASK_ENV=development
+    ports:
+      - "5005:5005"  # Exposing approval service on port 5005
+    restart: always
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+
+  notification_service:
+    build:
+      context: ./src/app/backend/approval 
+    command: python notification.py
+    depends_on:
+      - rabbitmq
+    restart: always
+
+
