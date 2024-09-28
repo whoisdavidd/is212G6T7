@@ -66,7 +66,7 @@ def update_profile_location():
                 profile.location = 'WFH'
                 db.session.commit()
 
-@app.route("/maangers/<int:staff_id>", methods=['GET'])
+@app.route("/mangers/<int:staff_id>", methods=['GET'])
 def getManagers(staff_id):
     employee = Profile.query.filter_by(staff_id=staff_id).first()
     manager = employee.query.filter_by(staff_id=employee.id).all() #manager name
@@ -88,7 +88,32 @@ def getManagers(staff_id):
 def get_all_profiles():
     profiles = Profile.query.all()
     return jsonify([profile.to_dict() for profile in profiles])
-    
+
+@app.route("/login", methods=['POST'])
+def authentication():
+    email = request.json.get("email")
+    password = request.json.get("password")
+    user = Profile.query.filter_by(email=email,password=password).first()
+    if user:
+        return jsonify(
+            {
+                "code": 200,
+                "data": {
+                    "employee": user.to_dict(),
+                    "department": user.department,
+                    "position": user.position,
+                    'role': user.role,
+                    'staff_id': user.staff_id
+                    
+                }
+            }
+        )
+    return jsonify(
+        {
+            "code": 404,
+            "message": "Employee not found."
+        }
+    ), 404
 if __name__ == '__main__':
     app.run(port=5002, debug=True)                
 
