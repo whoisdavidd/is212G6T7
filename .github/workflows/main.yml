@@ -20,7 +20,7 @@ jobs:
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: schedules_db
+          POSTGRES_DB: postgres
 
     steps:
     # Checkout the code
@@ -31,7 +31,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.12'
 
     # Install dependencies
     - name: Install dependencies
@@ -50,11 +50,6 @@ jobs:
     #     # Run your unit tests or integration tests here
     #     docker exec -it <your_microservice_container_name> pytest
 
-    # # Push Docker image to Docker Hub (optional)
-    # - name: Log in to Docker Hub
-    #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    # - name: Push Docker Image
-    #   run: |
-    #     docker tag <your_image>:latest <your_dockerhub_username>/<your_image>:latest
-    #     docker push <your_dockerhub_username>/<your_image>:latest
+
+  
