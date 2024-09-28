@@ -37,7 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r .github/workflows/requirements.txt
 
     # Build Docker images (if using Docker)
     - name: Build Docker image
