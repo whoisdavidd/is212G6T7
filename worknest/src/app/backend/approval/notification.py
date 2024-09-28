@@ -20,18 +20,18 @@ def callback(ch, method, properties, body):
     
     # Prepare the email content for the requester based on the action
     if action == 'approved':
-        requester_subject = "Your request has been approved"
-        requester_body = f"Your request for WFH on {wfh_date} has been approved. Comments: {comment}"
+        requester_subject = "WFH Request Approved"
+        requester_body = f"Congratulations! Your request for WFH on {wfh_date} has been approved. Comments: {comment}"
     else:  # action == 'rejected'
-        requester_subject = "Your request has been rejected"
-        requester_body = f"Your request for WFH on {wfh_date} has been rejected. Comments: {comment}"
+        requester_subject = "WFH Request Rejected"
+        requester_body = f"Unfortunately, your request for WFH on {wfh_date} has been rejected. Comments: {comment}"
 
     # Prepare the email content for the approver based on the action
     if action == 'approved':
-        approver_subject = "You have approved the request"
+        approver_subject = "Approval Confirmation"
         approver_body = f"You have approved the WFH request for {wfh_date} from the requester. Comments: {comment}"
     else:  # action == 'rejected'
-        approver_subject = "You have rejected the request"
+        approver_subject = "Rejection Confirmation"
         approver_body = f"You have rejected the WFH request for {wfh_date} from the requester. Comments: {comment}"
 
     # Send email to requester
@@ -39,9 +39,6 @@ def callback(ch, method, properties, body):
     
     # Send email to approver
     send_email_notification(approver_email, approver_subject, approver_body)
-
-
-
 
 
 def start_worker():
