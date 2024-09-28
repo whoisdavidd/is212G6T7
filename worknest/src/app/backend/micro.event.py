@@ -19,6 +19,7 @@ db = SQLAlchemy(app)
 class event(db.Model):
     __tablename__ = 'event'
 
+    id = db.Column(db.Integer, primary_key=True)  # Adding a primary key
     department = db.Column(db.String(50), nullable=False)
     event_name = db.Column(db.String(50), nullable=False)
     event_date = db.Column(db.String(50), nullable=False)
@@ -29,6 +30,7 @@ class event(db.Model):
         self.event_date = event_date
     def to_dict(self):
         return {
+            'id': self.id,
             'department': self.department,
             'event_name': self.event_name,
             'event_date': self.event_date

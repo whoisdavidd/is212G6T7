@@ -22,7 +22,7 @@ db = SQLAlchemy(app)
 class Schedule(db.Model):
     __tablename__ = "schedule"
     
-    staff_id = db.Column(db.Integer)
+    staff_id = db.Column(db.Integer, primary_key=True)
     start_date = db.Column(db.String(50), nullable=False)
     department = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)

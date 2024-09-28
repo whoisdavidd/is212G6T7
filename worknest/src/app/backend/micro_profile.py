@@ -25,14 +25,29 @@ class Profile(db.Model):
     staff_id = db.Column(db.Integer, primary_key=True)
     staff_fname = db.Column(db.String(50))
     staff_lname = db.Column(db.String(50))
-    dept = db.Column(db.String(50))
+    department = db.Column(db.String(50))
     position = db.Column(db.String(50))
     country = db.Column(db.String(50))
     location = db.Column(db.String(50),default = "OFFICE")
     email = db.Column(db.String(50))
-    reporting_id = db.Column(db.Integer)
+    reporting_manager_id = db.Column(db.Integer)
     role = db.Column(db.Integer)
     password = db.Column(db.String(50))
+    
+    def to_dict(self):
+        return {
+            'staff_id': self.staff_id,
+            'staff_fname': self.staff_fname,
+            'staff_lname': self.staff_lname,
+            'department': self.department,
+            'position': self.position,
+            'country': self.country,
+            'location': self.location,
+            'email': self.email,
+            'reporting_manager_id': self.reporting_manager_id,
+            'role': self.role,
+            # Exclude or obfuscate sensitive data like passwords in the dictionary output
+    }
     
 def update_profile_location():
     # Get today's date
