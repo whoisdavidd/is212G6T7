@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from src.app.backend.db import db
+from ...backend import db
 load_dotenv()
 
 app = Flask(__name__)
@@ -12,9 +12,8 @@ db_url = os.getenv("DATABASE_URL")
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Javanchok13@localhost:5432/employee'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/employee'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 # db = SQLAlchemy(app)
 db.init_app(app)
 

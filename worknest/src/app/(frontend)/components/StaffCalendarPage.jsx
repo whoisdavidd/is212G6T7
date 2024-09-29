@@ -4,6 +4,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale'; // Locale for date formatting
 import Summary from './Summary';
+import Sidebar from './Sidebar';
 import '../../styles/App.css';
 
 // Configure date-fns as the localizer for React Big Calendar
@@ -68,14 +69,18 @@ const StaffCalendarPage = () => {
             <button className="btn-approval">Pending approval</button>
           </div>
         </div>
+
         <div className="summary-container">
           <Summary />
-      <Sidebar />
-      <div className="main-content">
-        <h2>Overview</h2>
-        <Calendar onChange={setDate} value={date} />
-        <div className="action-buttons">
-          <button className="btn-approval">Pending approval</button>
+          <Sidebar />
+        </div>
+        
+        <div className="main-content">
+          <h2>Overview</h2>
+          <Calendar onChange={setDate} value={date} />
+          <div className="action-buttons">
+            <button className="btn-approval">Pending approval</button>
+          </div>
         </div>
       </div>
     </div>
@@ -83,9 +88,3 @@ const StaffCalendarPage = () => {
 };
 
 export default StaffCalendarPage;
-
-
-
-
-
-

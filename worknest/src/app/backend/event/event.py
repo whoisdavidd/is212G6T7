@@ -19,9 +19,9 @@ db_url = os.getenv("DATABASE_URL")
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:dxnial@localhost:5432/employee'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/employee'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
 # 
 db.init_app(app)
 
@@ -42,8 +42,8 @@ class Event(db.Model):
     # wfh_records = db.relationship('WFH', backref='event', cascade="all, delete", lazy=True) #this one dont need 
 
     def __init__(self, staff_id, event_name, event_date, reporting_manager, reporting_manager_id, department, event_type):
-    department = db.Column(db.String(50), db.ForeignKey('department.department'), nullable=False)  # ForeignKey to Department
-    event_type = db.Column(db.String(50))  # Optional field to categorize the event (WFH, etc.)
+        department = db.Column(db.String(50), db.ForeignKey('department.department'), nullable=False)  # ForeignKey to Department
+        event_type = db.Column(db.String(50))  # Optional field to categorize the event (WFH, etc.)
     
     def __init__(self, staff_id, event_name, start_date, end_date, reason, reporting_manager, reporting_manager_id, department, event_type):
         self.staff_id = staff_id
@@ -105,7 +105,7 @@ def add_event():
         start_date=data['start_date'],
         end_date=data['end_date'],
         reason=data['reason'],
-        reporting_manager=employee.staff_fname + ' ' + employee.staff_lname,
+        # reporting_manager=employee.staff_fname + ' ' + employee.staff_lname,
         reporting_manager_id=employee.reporting_manager,
         department=employee.dept,
         event_type=data.get('event_type', 'General')  # Optional field

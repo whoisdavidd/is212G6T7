@@ -14,40 +14,6 @@ import {
   GridRowEditStopReasons,
 } from '@mui/x-data-grid';
 
-// Manually defined data
-const initialRows = [
-  {
-    id: 1,
-    date: '2024-09-24',
-    timeFrom: '0800',
-    timeTo: '1700'
-  },
-  {
-    id: 2,
-    date: '2024-09-25',
-    timeFrom: '0800',
-    timeTo: '1700'
-  },
-  {
-    id: 3,
-    date: '2024-09-26',
-    timeFrom: '0800',
-    timeTo: '1700'
-  },
-  {
-    id: 4,
-    date: '2024-09-27',
-    timeFrom: '0800',
-    timeTo: '1700'
-  },
-  {
-    id: 5,
-    date: '2024-09-28',
-    timeFrom: '0800',
-    timeTo: '1700'
-  },
-];
-
 function EditToolbar(props) {
   const { setRows, setRowModesModel } = props;
 
@@ -55,7 +21,7 @@ function EditToolbar(props) {
     const id = Date.now(); // Using timestamp as a unique ID for new entries
     setRows((oldRows) => [
       ...oldRows,
-      { id, date: '', timeFrom: '', timeTo: '', isNew: true },
+      { id, event_name: '', start_date: '', end_date: '', approve_status: '', isNew: true },
     ]);
     setRowModesModel((oldModel) => ({
       ...oldModel,
@@ -66,15 +32,52 @@ function EditToolbar(props) {
   return (
     <GridToolbarContainer>
       <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
-        Add record
+        Add Event
       </Button>
     </GridToolbarContainer>
   );
 }
 
 export default function FullFeaturedCrudGrid() {
-  const [rows, setRows] = React.useState(initialRows);
+  const [rows, setRows] = React.useState([]);
   const [rowModesModel, setRowModesModel] = React.useState({});
+
+  // Fetch event data from the Flask backend
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/events/staff_id'); // Replace with dynamic staff_id if needed
+        const data = await response.json();
+        const formattedData = data.map((item) => ({
+          id: item.event_id, // Assuming there's an event_id as the unique identifier
+          event_name: item.event_name,
+          start_date: item.start_date,
+          end_date: item.end_date,
+          approve_status: item.approve_status
+        }));
+        setRows(formattedData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/wfh/staff_id'); // Replace with dynamic staff_id if needed
+        const data = await response.json();
+        const formattedData = data.map((item) => ({
+          approve_status: item.approve_status
+        }));
+        setRows(formattedData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleRowEditStop = (params, event) => {
     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
@@ -90,11 +93,23 @@ export default function FullFeaturedCrudGrid() {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
   };
 
+  const handleCancelClick = (id) => () => {
+    // Handle cancel action for "Pending" status
+    console.log(`Cancel request for row with id: ${id}`);
+    setRows(rows.map(row => (row.id === id ? { ...row, approve_status: 'Cancelled' } : row)));
+  };
+
+  const handleWithdrawClick = (id) => () => {
+    // Handle withdraw action for "Approved" status
+    console.log(`Withdraw request for row with id: ${id}`);
+    setRows(rows.map(row => (row.id === id ? { ...row, approve_status: 'Withdrawn' } : row)));
+  };
+
   const handleDeleteClick = (id) => () => {
     setRows(rows.filter((row) => row.id !== id));
   };
 
-  const handleCancelClick = (id) => () => {
+  const handleCancelEditClick = (id) => () => {
     setRowModesModel({
       ...rowModesModel,
       [id]: { mode: GridRowModes.View, ignoreModifications: true },
@@ -118,36 +133,40 @@ export default function FullFeaturedCrudGrid() {
 
   const columns = [
     {
-      field: 'date',
-      headerName: 'Date',
+      field: 'event_name',
+      headerName: 'Event Name',
+      width: 180,
+      editable: true,
+    },
+    {
+      field: 'start_date',
+      headerName: 'Start Date',
       type: 'date',
-      width: 80,
-      align: 'left',
-      headerAlign: 'left',
+      width: 180,
       editable: true,
-      valueGetter: (value) => value && new Date(value),
+      valueGetter: (params) => new Date(params.value),
     },
     {
-        field: 'timeFrom',
-        headerName: 'From',
-        type: 'string',
-        width: 180,
-        editable: true
+      field: 'end_date',
+      headerName: 'End Date',
+      type: 'date',
+      width: 180,
+      editable: true,
+      valueGetter: (params) => new Date(params.value),
     },
     {
-      field: 'timeTo',
-      headerName: 'To',
-      width: 220,
+      field: 'approve_status',
+      headerName: 'Approval Status',
+      width: 150,
       editable: true,
-      type: 'string'
     },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 150,
       cellClassName: 'actions',
-      getActions: ({ id }) => {
+      getActions: ({ id, row }) => {
         const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
         if (isInEditMode) {
@@ -164,7 +183,30 @@ export default function FullFeaturedCrudGrid() {
               icon={<CancelIcon />}
               label="Cancel"
               className="textPrimary"
+              onClick={handleCancelEditClick(id)}
+              color="inherit"
+            />,
+          ];
+        }
+
+        // Conditional action based on approval status
+        if (row.approve_status === 'Pending') {
+          return [
+            <GridActionsCellItem
+              icon={<CancelIcon />}
+              label="Cancel"
               onClick={handleCancelClick(id)}
+              color="inherit"
+            />,
+          ];
+        }
+
+        if (row.approve_status === 'Approved') {
+          return [
+            <GridActionsCellItem
+              icon={<DeleteIcon />}
+              label="Withdraw"
+              onClick={handleWithdrawClick(id)}
               color="inherit"
             />,
           ];

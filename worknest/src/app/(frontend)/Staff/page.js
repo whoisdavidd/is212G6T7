@@ -4,6 +4,7 @@ import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import StaffCalendar from '../components/StaffCalendar';
 import { Grid2 } from '@mui/material';
 import StaffSchedule from '../components/StaffSchedule';
+import StaffCalendarPage from '../components/StaffCalendarPage';
 import Summary from '../components/Summary';
 import WfhButton from '../components/WfhButton';
 
@@ -18,7 +19,7 @@ function Staff() {
       <div>
       <WfhButton />
       </div>
-      <StaffCalendarPage />
+      {/* <StaffCalendarPage /> */}
     </div>
   );
 }
