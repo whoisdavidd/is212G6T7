@@ -1,35 +1,46 @@
 import React from 'react';
-import { FormControl, TextField, Autocomplete, Box, Grid } from '@mui/material';
+import { TextField, MenuItem, Grid, Button } from '@mui/material';
 
-const FilterForm = ({ filters = [], onFilterChange }) => {
+const FilterForm = ({ filters, onFilterChange, onClearFilters }) => {
+    const handleChange = (key) => (event) => {
+        onFilterChange(key, event.target.value);
+    };
+
     return (
-        <Box sx={{ mb: 2 }}>
+        <div>
             <Grid container spacing={2}>
-                {filters.map((filter, index) => (
-                    <Grid
-                        item
-                        xs={12}
-                        sm={filter.fullWidth ? 12 : 6}
-                        key={index}
-                    >
-                        <FormControl fullWidth sx={{ mb: '5px' }}>
-                            <Autocomplete
-                                options={filter.options}
-                                value={filter.value}
-                                onChange={(event, newValue) => onFilterChange(filter.key, newValue)}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        label={filter.label}
-                                    />
-                                )}
-                                freeSolo
+                {filters.map((filter) => (
+                    <Grid item xs={filter.fullWidth ? 12 : 6} key={filter.key}>
+                        {filter.type === 'date' ? (
+                            <TextField
+                                fullWidth
+                                label={filter.label}
+                                type="date"
+                                value={filter.value ? new Date(filter.value).toISOString().split('T')[0] : ''} // Ensuring YYYY-MM-DD
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                                onChange={handleChange(filter.key)}
                             />
-                        </FormControl>
+                        ) : (
+                            <TextField
+                                fullWidth={filter.fullWidth}
+                                select={filter.options.length > 0}
+                                label={filter.label}
+                                value={filter.value}
+                                onChange={handleChange(filter.key)}
+                            >
+                                {filter.options.length > 0 && filter.options.map((option, index) => (
+                                    <MenuItem key={index} value={option}>
+                                        {option}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        )}
                     </Grid>
                 ))}
             </Grid>
-        </Box>
+        </div>
     );
 };
 
