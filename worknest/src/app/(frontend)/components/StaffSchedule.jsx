@@ -21,7 +21,7 @@ function EditToolbar(props) {
     const id = Date.now(); // Using timestamp as a unique ID for new entries
     setRows((oldRows) => [
       ...oldRows,
-      { id, event_name: '', start_date: '', end_date: '', approve_status: '', isNew: true },
+      { id, event_name: '', event_date: '', event_type: '', department: '', isNew: true },
     ]);
     setRowModesModel((oldModel) => ({
       ...oldModel,
@@ -41,19 +41,21 @@ function EditToolbar(props) {
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
   const [rowModesModel, setRowModesModel] = React.useState({});
+  const staff_id = sessionStorage.getItem('staff_id');
 
   // Fetch event data from the Flask backend
   React.useEffect(() => {
     const fetchData = async () => {
+
       try {
-        const response = await fetch('http://localhost:5000/events/staff_id'); // Replace with dynamic staff_id if needed
+        const response = await fetch(`http://localhost:5001/events/${staff_id}`); // Replace with dynamic staff_id if needed
         const data = await response.json();
         const formattedData = data.map((item) => ({
           id: item.event_id, // Assuming there's an event_id as the unique identifier
           event_name: item.event_name,
-          start_date: item.start_date,
-          end_date: item.end_date,
-          approve_status: item.approve_status
+          event_date: item.event_date,
+          event_type: item.event_type,
+          department: item.department
         }));
         setRows(formattedData);
       } catch (error) {
@@ -65,8 +67,9 @@ export default function FullFeaturedCrudGrid() {
 
   React.useEffect(() => {
     const fetchData = async () => {
+     
       try {
-        const response = await fetch('http://localhost:5001/wfh/staff_id'); // Replace with dynamic staff_id if needed
+        const response = await fetch(`http://localhost:5002/wfh/${staff_id}`); // Replace with dynamic staff_id if needed
         const data = await response.json();
         const formattedData = data.map((item) => ({
           approve_status: item.approve_status
@@ -139,15 +142,15 @@ export default function FullFeaturedCrudGrid() {
       editable: true,
     },
     {
-      field: 'start_date',
-      headerName: 'Start Date',
+      field: 'event_date',
+      headerName: 'event Date',
       type: 'date',
       width: 180,
       editable: true,
       valueGetter: (params) => new Date(params.value),
     },
     {
-      field: 'end_date',
+      field: 'event_type',
       headerName: 'End Date',
       type: 'date',
       width: 180,
@@ -155,7 +158,7 @@ export default function FullFeaturedCrudGrid() {
       valueGetter: (params) => new Date(params.value),
     },
     {
-      field: 'approve_status',
+      field: 'department',
       headerName: 'Approval Status',
       width: 150,
       editable: true,

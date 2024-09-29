@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from ...backend import db
+from worknest.src.app.backend.db import db
 load_dotenv()
 
 app = Flask(__name__)
@@ -12,7 +12,7 @@ db_url = os.getenv("DATABASE_URL")
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/employee'
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # db = SQLAlchemy(app)
 db.init_app(app)
@@ -87,4 +87,4 @@ def display_wfh_status():
     return jsonify(wfh_data)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port = 5002,debug=True)

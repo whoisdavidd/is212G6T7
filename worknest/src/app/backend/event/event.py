@@ -6,10 +6,7 @@ from flask_cors import CORS
 from worknest.src.app.backend.employee.employee import Employees
 from worknest.src.app.backend.wfh.wfh import WFH
 from worknest.src.app.backend.department.department import Department
-from employee import Employees
-from wfh import WFH
-from department import Department
-from src.app.backend.db import db
+from worknest.src.app.backend.db import db
 
 load_dotenv()
 
@@ -19,7 +16,7 @@ db_url = os.getenv("DATABASE_URL")
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/employee'
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # db = SQLAlchemy(app)
 # 
@@ -31,9 +28,9 @@ class Event(db.Model):
     event_id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('employee.staff_id'), nullable=False)
     event_name = db.Column(db.String(50), nullable=False)
-    start_date = db.Column(db.Date, nullable=False)  # Added start_date field
-    end_date = db.Column(db.Date, nullable=False)    # Added end_date field
-    reason = db.Column(db.String(255), nullable=False)  # Added reason field
+    # start_date = db.Column(db.Date, nullable=False)  # Added start_date field
+    # end_date = db.Column(db.Date, nullable=False)    # Added end_date field
+    # reason = db.Column(db.String(255), nullable=False)  # Added reason field
     reporting_manager = db.Column(db.String(50))
     reporting_manager_id = db.Column(db.Integer)
     department = db.Column(db.String(50),db.ForeignKey('department.department'), nullable=False)  # ForeignKey to Department
@@ -102,9 +99,9 @@ def add_event():
         event_name=data['event_name'],
         event_date=data['event_date'],
         reporting_manager=f"{employee.staff_fname} {employee.staff_lname}",
-        start_date=data['start_date'],
-        end_date=data['end_date'],
-        reason=data['reason'],
+        # start_date=data['start_date'],
+        # end_date=data['end_date'],
+        # reason=data['reason'],
         # reporting_manager=employee.staff_fname + ' ' + employee.staff_lname,
         reporting_manager_id=employee.reporting_manager,
         department=employee.dept,
@@ -118,7 +115,7 @@ def add_event():
         department=new_event.department,
         event_id=new_event.event_id,
         event_name=data['event_name'],
-        event_date=data['start_date'],
+        event_date=data['event_date'],
         reporting_manager=new_event.reporting_manager,
         reporting_manager_id=new_event.reporting_manager_id,
         approve_status='Pending'  # Default status
