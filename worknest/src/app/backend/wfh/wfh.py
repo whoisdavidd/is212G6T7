@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
+from src.app.backend.db import db
 load_dotenv()
 
 app = Flask(__name__)
@@ -14,6 +15,8 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Javanchok13@localhost:5432/employee'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
+db.init_app(app)
 
 class WFH(db.Model):
     __tablename__ = 'wfh'
@@ -65,6 +68,24 @@ def get_events_by_staff(staff_id):
 
     # Return JSON response with event details
     return jsonify(events), 200
+    if not wfh_request:
+        return jsonify({'error': 'WFH request not found'}), 404
+
+    # Update the approval status
+    wfh_request.approve_status = new_status
+    db.session.commit()
+
+    return jsonify({'message': 'WFH request updated successfully', 'wfh': wfh_request.to_dict()}), 200
+
+@app.route('/wfh_status', methods=['GET'])
+def display_wfh_status():
+    # Query all WFH requests
+    wfh_requests = WFH.query.all()
+    
+    wfh_data = [{'id': w.id, 'employee_id': w.employee_id, 'status': w.status, 'date': w.date} for w in wfh_requests]
+
+    # Return the data as JSON
+    return jsonify(wfh_data)
 
 if __name__ == '__main__':
     app.run(debug=True)

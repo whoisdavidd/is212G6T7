@@ -5,6 +5,7 @@ import StaffCalendar from '../components/StaffCalendar';
 import { Grid2 } from '@mui/material';
 import StaffSchedule from '../components/StaffSchedule';
 import Summary from '../components/Summary';
+import WfhButton from '../components/WfhButton';
 
 function Staff() {
   return (
@@ -14,6 +15,10 @@ function Staff() {
       <StaffCalendar />
       <Summary />
 
+      <div>
+      <WfhButton />
+      </div>
+      <StaffCalendarPage />
     </div>
   );
 }

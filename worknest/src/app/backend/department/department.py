@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_cors import CORS
-from src.app.backend.db import db  # Import the shared db instance
+from src.app.backend.db import db
 
 
 load_dotenv()
@@ -18,6 +18,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Javanchok13@local
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# db = SQLAlchemy(app)
+db.init_app(app)
 class Department(db.Model):
     __tablename__ = 'department'
     

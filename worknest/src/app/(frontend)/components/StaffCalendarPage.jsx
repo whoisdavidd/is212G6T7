@@ -70,6 +70,12 @@ const StaffCalendarPage = () => {
         </div>
         <div className="summary-container">
           <Summary />
+      <Sidebar />
+      <div className="main-content">
+        <h2>Overview</h2>
+        <Calendar onChange={setDate} value={date} />
+        <div className="action-buttons">
+          <button className="btn-approval">Pending approval</button>
         </div>
       </div>
     </div>

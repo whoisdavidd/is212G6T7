@@ -2,28 +2,33 @@
 FROM python:3.10-slim
 
 # Set environment variable to ensure output is flushed immediately
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
+
+# Set PYTHONPATH to include /usr/src/app so Python can find the modules
+ENV PYTHONPATH=/usr/src/app
+
+
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /usr/src/app/backend/employee
 
 # Copy the current directory contents into the container at /app
-COPY . /app
+COPY ./department.py /usr/src/app/backend/employee//
 
-# Install gcc and other dependencies for building python packages like psycopg2 (or other DB connectors)
+# Install gcc and other dependencies for building python packages like psycopg2
 RUN apt-get update \
     && apt-get install -y gcc python3-dev libpq-dev \
     && apt-get clean
 
-# Install any Python dependencies from requirements.txt (you might need to create this file if you don't have it)
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies from requirements.txt
+COPY requirements.txt /app/backend/department/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/department/requirements.txt
 
-# Make sure to expose the port your Flask app runs on (default Flask port is 5000)
+# Expose the Flask port (default is 5000)
 EXPOSE 5000
-
-# Copy the .env file
-COPY .env /app/.env
-
 # Define the command to start the Flask app
-CMD ["python", "app.py"]
+CMD ["python", "employee.py"]
+
+
+#docker build command docker build -t department .
+# docker run --env-file /Users/davidkumar/Documents/GitHub/is212G6T7/worknest/worknest/.env department (run from absolute path)
