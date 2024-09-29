@@ -5,6 +5,7 @@ import os
 from flask_cors import CORS
 from src.app.backend.db import db  # Import the shared db instance
 
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -13,9 +14,9 @@ db_url = os.getenv("DATABASE_URL")
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Javanchok13@localhost:5432/employee'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
+db = SQLAlchemy(app)
 
 class Department(db.Model):
     __tablename__ = 'department'
