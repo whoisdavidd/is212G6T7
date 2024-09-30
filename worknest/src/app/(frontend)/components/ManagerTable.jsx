@@ -72,7 +72,15 @@ const ManagerTable = () => {
     // Helper function to format date as YYYY-MM-DD
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toISOString().split('T')[0]; // Extract YYYY-MM-DD from the ISO string
+    
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            console.error('Invalid date:', dateString);
+            return 'Invalid Date'; // You can return 'Invalid Date' or handle it differently
+        }
+    
+        // Extract YYYY-MM-DD from the ISO string
+        return date.toISOString().split('T')[0];
     };
 
     const filteredEmployees = sortedEmployees.filter(employee => {
