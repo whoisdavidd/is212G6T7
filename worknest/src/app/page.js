@@ -13,7 +13,7 @@ export default function HomePage() {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/", {
+      const response = await fetch("http://127.0.0.1:5002/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -25,14 +25,16 @@ export default function HomePage() {
       if (response.ok) {
         // Handle successful login (e.g., save a token or redirect)
         console.log("Login successful:", data);
-        if(data.data.department === "HR"){
-          window.location.href = "/HR";  // Redirect to HR page
-        }else {
+        sessionStorage.setItem("role", data.data.role);
+        sessionStorage.setItem("staff_id", data.data.staff_id);
+        sessionStorage.setItem("department", data.data.department);
+        if(data.data.role === "1"){
+          window.location.href = "/Manager";  // Redirect to HR page
+        }else if (data.data.role == 2) {
+          window.location.href = "/Staff";  // Redirect to Staff page
+        }else{
           window.location.href = "/dashboard";  // Redirect to HR page
         }
-      } else {
-        // Handle login error
-        setErrorMessage(data.message || "Login failed");
       }
     } catch (error) {
       console.error("Error during login:", error);
