@@ -593,12 +593,14 @@ CREATE TABLE request (
     duration VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL,
     reporting_manager_id INT,
-    reporting_manager_name VARCHAR(50)
+    reporting_manager_name VARCHAR(50),
+    day_id SERIAL NOT NULL,
+    recurring_days INT[]
 );
 
 CREATE table schedule(
     staff_id INT PRIMARY KEY,
-    start_date DATE NOT NULL,
+    date DATE NOT NULL,
     department VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL
 );

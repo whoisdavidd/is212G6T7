@@ -28,8 +28,10 @@ class Request(db.Model):
     status = db.Column(db.String(50), nullable=False)
     reporting_manager_id = db.Column(db.Integer)
     reporting_manager_name = db.Column(db.String(50))
+    day_id = db.Column(db.Integer)
+    recurring_days = db.Column(db.Integer)
     
-    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name):
+    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name,day_id,recurring_days):
         self.staff_id = staff_id
         self.department = department
         self.start_date = start_date
@@ -38,6 +40,9 @@ class Request(db.Model):
         self.status = status
         self.reporting_manager_id = reporting_manager_id
         self.reporting_manager_name = reporting_manager_name
+        self.day_id = day_id
+        self.recurring_days = recurring_days
+        
     def to_dict(self):
         return {
             'staff_id': self.staff_id,
@@ -47,7 +52,9 @@ class Request(db.Model):
             'duration': self.duration,
             'status': self.status, #need datetime? for audit log
             'reporting_manager_id': self.reporting_manager_id,
-            'reporting_manager_name': self.reporting_manager_name
+            'reporting_manager_name': self.reporting_manager_name,
+            'day_id': self.day_id,
+            'recurring_days': self.recurring_days
         }
 @app.route('/request', methods=['GET'])
 def get_all_requests():

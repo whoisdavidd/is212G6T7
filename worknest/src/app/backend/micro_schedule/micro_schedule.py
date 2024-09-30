@@ -27,15 +27,15 @@ class Schedule(db.Model):
     department = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     
-    def __init__(self, staff_id, start_date, department, status):
+    def __init__(self, staff_id, date, department, status):
         self.staff_id = staff_id
-        self.start_date = start_date
+        self.date = date
         self.department = department
         self.status = status
     def to_dict(self):
         return {
             'staff_id': self.staff_id,
-            'start_date': self.start_date,
+            'date': self.date,
             'department': self.department,
             'status': self.status
         }
@@ -46,7 +46,7 @@ def update_schedule():
         staff_id = data['staff_id']
         department = data['department']
         status = data['status']
-        start_date = data['start_date']
+        date = data['date']
         
 
         # Find the corresponding staff entry in the Schedule table
@@ -54,7 +54,7 @@ def update_schedule():
 
         if schedule_entry:
             # Update the existing schedule entry
-            schedule_entry.start_date = start_date
+            schedule_entry.start_date = date
             schedule_entry.department = department
             schedule_entry.status = status
             db.session.commit()
@@ -63,7 +63,7 @@ def update_schedule():
             # If no existing entry, create a new one
             new_schedule = Schedule(
                 staff_id=staff_id,
-                start_date=start_date,
+                date=date,
                 department=department,
                 status=status
             )
