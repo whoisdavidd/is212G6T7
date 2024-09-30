@@ -104,7 +104,6 @@ def authentication():
                     "position": user.position,
                     'role': user.role,
                     'staff_id': user.staff_id
-                    
                 }
             }
         )
