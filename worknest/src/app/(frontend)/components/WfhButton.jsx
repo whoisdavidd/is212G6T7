@@ -160,7 +160,6 @@ export default function WfhButton() {
                 margin="dense"
                 label="Manager's Name"
                 fullWidth
-                required
               />
             )}
           />
@@ -170,7 +169,7 @@ export default function WfhButton() {
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={!selectedManager || !startDate || !endDate || !reason}
+            disabled={!startDate || !endDate || !reason}
           >
             Submit Request
           </Button>

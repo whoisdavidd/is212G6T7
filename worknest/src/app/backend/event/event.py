@@ -3,10 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from worknest.src.app.backend.employee.employee import Employees
-from worknest.src.app.backend.wfh.wfh import WFH
-from worknest.src.app.backend.department.department import Department
-from worknest.src.app.backend.db import db
+# from worknest.src.app.backend.employee.employee import Employees
+# from worknest.src.app.backend.wfh.wfh import WFH
+# from worknest.src.app.backend.department.department import Department
+# from worknest.src.app.backend.db import db
 
 load_dotenv()
 
@@ -18,9 +18,9 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# db = SQLAlchemy(app)
+db = SQLAlchemy(app)
 # 
-db.init_app(app)
+# db.init_app(app)
 
 class Event(db.Model):
     tablename = 'event'
@@ -28,9 +28,10 @@ class Event(db.Model):
     event_id = db.Column(db.Integer, primary_key=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('employee.staff_id'), nullable=False)
     event_name = db.Column(db.String(50), nullable=False)
-    # start_date = db.Column(db.Date, nullable=False)  # Added start_date field
-    # end_date = db.Column(db.Date, nullable=False)    # Added end_date field
-    # reason = db.Column(db.String(255), nullable=False)  # Added reason field
+    event_date = db.Column(db.Date, nullable=False)
+    start_date = db.Column(db.Date, nullable=False)  # Added start_date field
+    end_date = db.Column(db.Date, nullable=False)    # Added end_date field
+    reason = db.Column(db.String(255), nullable=False)  # Added reason field
     reporting_manager = db.Column(db.String(50))
     reporting_manager_id = db.Column(db.Integer)
     department = db.Column(db.String(50),db.ForeignKey('department.department'), nullable=False)  # ForeignKey to Department
@@ -58,6 +59,7 @@ class Event(db.Model):
             'event_id': self.event_id,
             'staff_id': self.staff_id,
             'event_name': self.event_name,
+            'event_date': str(self.event_date),
             'start_date': str(self.start_date),
             'end_date': str(self.end_date),
             'reason': self.reason,
@@ -99,9 +101,9 @@ def add_event():
         event_name=data['event_name'],
         event_date=data['event_date'],
         reporting_manager=f"{employee.staff_fname} {employee.staff_lname}",
-        # start_date=data['start_date'],
-        # end_date=data['end_date'],
-        # reason=data['reason'],
+        start_date=data['start_date'],
+        end_date=data['end_date'],
+        reason=data['reason'],
         # reporting_manager=employee.staff_fname + ' ' + employee.staff_lname,
         reporting_manager_id=employee.reporting_manager,
         department=employee.dept,

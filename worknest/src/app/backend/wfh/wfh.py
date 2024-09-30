@@ -1,9 +1,9 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-from worknest.src.app.backend.db import db
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -14,77 +14,64 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# db = SQLAlchemy(app)
-db.init_app(app)
+db = SQLAlchemy(app)
 
 class WFH(db.Model):
     __tablename__ = 'wfh'
     
-    # Columns based on your SQL table structure
-    staff_id = db.Column(db.Integer, db.ForeignKey('employee.staff_id'), nullable=False)  # FK to employee table
+    event_id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.event_id', ondelete='CASCADE'), primary_key=True)  # FK to event table
     event_name = db.Column(db.String(50), nullable=False)
     event_date = db.Column(db.Date, nullable=False)
     reporting_manager = db.Column(db.String(50))
     reporting_manager_id = db.Column(db.Integer)
-    approve_status = db.Column(db.String(50))  # Approval status
+    approve_status = db.Column(db.String(50))
 
-    # Initialize the attributes
-    def __init__(self, staff_id, department, event_id, event_name, event_date, reporting_manager, reporting_manager_id, approve_status):
-        self.staff_id = staff_id
-        self.department = department
-        self.event_id = event_id
-        self.event_name = event_name
-        self.event_date = event_date
-        self.reporting_manager = reporting_manager
-        self.reporting_manager_id = reporting_manager_id
-        self.approve_status = approve_status
-
-    # Convert the model to a dictionary
     def to_dict(self):
         return {
+            'event_id': self.event_id,
             'staff_id': self.staff_id,
             'department': self.department,
-            'event_id': self.event_id,
             'event_name': self.event_name,
-            'event_date': str(self.event_date),  # Convert date to string for JSON response
+            'event_date': self.event_date.isoformat() if self.event_date else None,
             'reporting_manager': self.reporting_manager,
             'reporting_manager_id': self.reporting_manager_id,
             'approve_status': self.approve_status
         }
 
-@app.route('/wfh/<int:staff_id>', methods=['GET'])
-def get_events_by_staff(staff_id):
-    # Query WFH events by staff ID
-    wfh_requests = WFH.query.filter_by(staff_id=staff_id).all()
-
-    if not wfh_requests:
-        return jsonify({'error': 'No events found for this staff member'}), 404
-
-    # Convert the events to a list of dictionaries
-    events = [wfh.to_dict() for wfh in wfh_requests]
-
-    # Return JSON response with event details
-    return jsonify(events), 200
+@app.route('/wfh/<int:event_id>/cancel', methods=['PUT'])
+def cancel_wfh_request(event_id):
+    wfh_request = WFH.query.get(event_id)
     if not wfh_request:
         return jsonify({'error': 'WFH request not found'}), 404
 
-    # Update the approval status
-    wfh_request.approve_status = new_status
+    if wfh_request.approve_status != 'Pending':
+        return jsonify({'error': 'Only pending requests can be cancelled'}), 400
+
+    wfh_request.approve_status = 'Cancelled'
     db.session.commit()
 
-    return jsonify({'message': 'WFH request updated successfully', 'wfh': wfh_request.to_dict()}), 200
+    return jsonify({'message': 'WFH request cancelled successfully', 'wfh': wfh_request.to_dict()}), 200
 
-@app.route('/wfh_status', methods=['GET'])
-def display_wfh_status():
-    # Query all WFH requests
-    wfh_requests = WFH.query.all()
-    
-    wfh_data = [{'id': w.id, 'employee_id': w.employee_id, 'status': w.status, 'date': w.date} for w in wfh_requests]
+@app.route('/wfh/<int:event_id>/withdraw', methods=['PUT'])
+def withdraw_wfh_request(event_id):
+    wfh_request = WFH.query.get(event_id)
+    if not wfh_request:
+        return jsonify({'error': 'WFH request not found'}), 404
 
-    # Return the data as JSON
-    return jsonify(wfh_data)
+    if wfh_request.approve_status != 'Approved':
+        return jsonify({'error': 'Only approved requests can be withdrawn'}), 400
+
+    wfh_request.approve_status = 'Withdrawn'
+    db.session.commit()
+
+    return jsonify({'message': 'WFH request withdrawn successfully', 'wfh': wfh_request.to_dict()}), 200
+
+@app.route('/wfh/<int:staff_id>', methods=['GET'])
+def get_wfh_requests(staff_id):
+    wfh_requests = WFH.query.filter_by(staff_id=staff_id).all()
+    return jsonify([wfh.to_dict() for wfh in wfh_requests])
 
 if __name__ == '__main__':
-    app.run(port = 5002,debug=True)
+    app.run(port=5002, debug=True)

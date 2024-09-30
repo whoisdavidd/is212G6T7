@@ -6,6 +6,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
+import WfhButton from './WfhButton';
+
 import {
   GridRowModes,
   DataGrid,
@@ -14,72 +16,74 @@ import {
   GridRowEditStopReasons,
 } from '@mui/x-data-grid';
 
-function EditToolbar(props) {
-  const { setRows, setRowModesModel } = props;
+// function EditToolbar(props) {
+//   const { setRows, setRowModesModel } = props;
 
-  const handleClick = () => {
-    const id = Date.now(); // Using timestamp as a unique ID for new entries
-    setRows((oldRows) => [
-      ...oldRows,
-      { id, event_name: '', event_date: '', event_type: '', department: '', isNew: true },
-    ]);
-    setRowModesModel((oldModel) => ({
-      ...oldModel,
-      [id]: { mode: GridRowModes.Edit, fieldToFocus: 'name' },
-    }));
-  };
+//   const handleClick = () => {
+//     const id = Date.now(); // Using timestamp as a unique ID for new entries
+//     setRows((oldRows) => [
+//       ...oldRows,
+//       { id, event_name: '', event_date: '', event_type: '', department: '', isNew: true },
+//     ]);
+//     setRowModesModel((oldModel) => ({
+//       ...oldModel,
+//       [id]: { mode: GridRowModes.Edit, fieldToFocus: 'name' },
+//     }));
+//   };
 
-  return (
-    <GridToolbarContainer>
-      <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
-        Add Event
-      </Button>
-    </GridToolbarContainer>
-  );
-}
+//   return (
+//     <GridToolbarContainer>
+//       <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
+//         Add Event
+//       </Button>
+//     </GridToolbarContainer>
+//   );
+// }
 
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
   const [rowModesModel, setRowModesModel] = React.useState({});
-  const staff_id = sessionStorage.getItem('staff_id');
+  const staff_id = 210030;
 
   // Fetch event data from the Flask backend
   React.useEffect(() => {
-    const fetchData = async () => {
-
+    const fetchEventData = async () => {
       try {
-        const response = await fetch(`http://localhost:5001/events/${staff_id}`); // Replace with dynamic staff_id if needed
+        const response = await fetch(`http://localhost:5001/events/${staff_id}`);
         const data = await response.json();
         const formattedData = data.map((item) => ({
-          id: item.event_id, // Assuming there's an event_id as the unique identifier
+          event_id: item.event_id,
           event_name: item.event_name,
-          event_date: item.event_date,
+          event_date: new Date(item.event_date),
+          start_date: new Date(item.start_date),
+          end_date: new Date(item.end_date),
+          reason: item.reason,
           event_type: item.event_type,
           department: item.department
         }));
         setRows(formattedData);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching event data:', error);
       }
     };
-    fetchData();
+    fetchEventData();
   }, []);
 
+  // Fetch WFH data and update existing rows
   React.useEffect(() => {
-    const fetchData = async () => {
-     
+    const fetchWFHData = async () => {
       try {
-        const response = await fetch(`http://localhost:5002/wfh/${staff_id}`); // Replace with dynamic staff_id if needed
+        const response = await fetch(`http://localhost:5002/wfh/${staff_id}`);
         const data = await response.json();
-        const formattedData = data.map((item) => ({
-          approve_status: item.approve_status
-        }));
-        setRows(formattedData);
+        setRows(prevRows => prevRows.map((row, index) => ({
+          ...row,
+          approve_status: data[index]?.approve_status || 'N/A'
+        })));
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching WFH data:', error);
       }
     };
-    fetchData();
+    fetchWFHData();
   }, []);
 
   const handleRowEditStop = (params, event) => {
@@ -88,45 +92,75 @@ export default function FullFeaturedCrudGrid() {
     }
   };
 
-  const handleEditClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+  // const handleEditClick = (id) => () => {
+  //   setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+  // };
+
+  // const handleSaveClick = (id) => () => {
+  //   setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
+  // };
+
+  const handleCancelClick = (event_id) => async () => {
+    try {
+      const response = await fetch(`http://localhost:5002/wfh/${event_id}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const updatedWfh = await response.json();
+        setRows(rows.map(row => (row.event_id === event_id ? { ...row, approve_status: 'Cancelled' } : row)));
+        console.log(`Cancelled request for event with id: ${event_id}`);
+      } else {
+        console.error('Failed to cancel request');
+      }
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+    }
   };
 
-  const handleSaveClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
+  const handleWithdrawClick = (event_id) => async () => {
+    try {
+      const response = await fetch(`http://localhost:5002/wfh/${event_id}/withdraw`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const updatedWfh = await response.json();
+        setRows(rows.map(row => (row.event_id === event_id ? { ...row, approve_status: 'Withdrawn' } : row)));
+        console.log(`Withdrawn request for event with id: ${event_id}`);
+      } else {
+        console.error('Failed to withdraw request');
+      }
+    } catch (error) {
+      console.error('Error withdrawing request:', error);
+    }
   };
 
-  const handleCancelClick = (id) => () => {
-    // Handle cancel action for "Pending" status
-    console.log(`Cancel request for row with id: ${id}`);
-    setRows(rows.map(row => (row.id === id ? { ...row, approve_status: 'Cancelled' } : row)));
+  const handleDeleteClick = (event_id) => () => {
+    setRows(rows.filter((row) => row.event_id !== event_id));
   };
 
-  const handleWithdrawClick = (id) => () => {
-    // Handle withdraw action for "Approved" status
-    console.log(`Withdraw request for row with id: ${id}`);
-    setRows(rows.map(row => (row.id === id ? { ...row, approve_status: 'Withdrawn' } : row)));
-  };
-
-  const handleDeleteClick = (id) => () => {
-    setRows(rows.filter((row) => row.id !== id));
-  };
-
-  const handleCancelEditClick = (id) => () => {
+  const handleCancelEditClick = (event_id) => () => {
     setRowModesModel({
       ...rowModesModel,
-      [id]: { mode: GridRowModes.View, ignoreModifications: true },
+    [event_id]: { mode: GridRowModes.View, ignoreModifications: true },
     });
 
-    const editedRow = rows.find((row) => row.id === id);
+    const editedRow = rows.find((row) => row.event_id === event_id);
     if (editedRow.isNew) {
-      setRows(rows.filter((row) => row.id !== id));
+      setRows(rows.filter((row) => row.event_id !== event_id));
     }
   };
 
   const processRowUpdate = (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
-    setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
+    setRows(rows.map((row) => (row.event_id === newRow.event_id ? updatedRow : row)));
     return updatedRow;
   };
 
@@ -139,129 +173,118 @@ export default function FullFeaturedCrudGrid() {
       field: 'event_name',
       headerName: 'Event Name',
       width: 180,
-      editable: true,
+      editable: false,
     },
     {
       field: 'event_date',
-      headerName: 'event Date',
+      headerName: 'Event Date',
       type: 'date',
       width: 180,
-      editable: true,
-      valueGetter: (params) => new Date(params.value),
+      editable: false,
+      valueGetter: (params) => {
+        // Ensure the value is a Date object
+        return params.value instanceof Date ? params.value : new Date(params.value);
+      },
     },
     {
-      field: 'event_type',
+      field: 'start_date',
+      headerName: 'Start Date',
+      type: 'date',
+      width: 180,
+      editable: false,
+      valueGetter: (params) => {
+        // Ensure the value is a Date object
+        return params.value instanceof Date ? params.value : new Date(params.value);
+      },
+    },
+    {
+      field: 'end_date',
       headerName: 'End Date',
       type: 'date',
       width: 180,
-      editable: true,
-      valueGetter: (params) => new Date(params.value),
+      editable: false,
+      valueGetter: (params) => {
+        // Ensure the value is a Date object
+        return params.value instanceof Date ? params.value : new Date(params.value);
+      },
     },
     {
-      field: 'department',
+      field: 'approve_status',
       headerName: 'Approval Status',
       width: 150,
-      editable: true,
+      editable: false,
     },
     {
       field: 'actions',
-      type: 'actions',
       headerName: 'Actions',
       width: 150,
       cellClassName: 'actions',
-      getActions: ({ id, row }) => {
-        const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
-
-        if (isInEditMode) {
-          return [
-            <GridActionsCellItem
-              icon={<SaveIcon />}
-              label="Save"
-              sx={{
-                color: 'primary.main',
-              }}
-              onClick={handleSaveClick(id)}
-            />,
-            <GridActionsCellItem
-              icon={<CancelIcon />}
-              label="Cancel"
-              className="textPrimary"
-              onClick={handleCancelEditClick(id)}
-              color="inherit"
-            />,
-          ];
-        }
-
-        // Conditional action based on approval status
+      renderCell: (params) => {
+        const { row } = params;
+  
         if (row.approve_status === 'Pending') {
-          return [
-            <GridActionsCellItem
-              icon={<CancelIcon />}
-              label="Cancel"
-              onClick={handleCancelClick(id)}
-              color="inherit"
-            />,
-          ];
+          return (
+            <Button
+              variant="contained"
+              color="secondary"
+              size="small"
+              onClick={handleCancelClick(row.event_id)}
+            >
+              Cancel
+            </Button>
+          );
         }
-
+  
         if (row.approve_status === 'Approved') {
-          return [
-            <GridActionsCellItem
-              icon={<DeleteIcon />}
-              label="Withdraw"
-              onClick={handleWithdrawClick(id)}
-              color="inherit"
-            />,
-          ];
+          return (
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={handleWithdrawClick(row.event_id)}
+            >
+              Withdraw
+            </Button>
+          );
         }
-
-        return [
-          <GridActionsCellItem
-            icon={<EditIcon />}
-            label="Edit"
-            className="textPrimary"
-            onClick={handleEditClick(id)}
-            color="inherit"
-          />,
-          <GridActionsCellItem
-            icon={<DeleteIcon />}
-            label="Delete"
-            onClick={handleDeleteClick(id)}
-            color="inherit"
-          />,
-        ];
+        // No action button for 'Cancelled', 'Withdrawn', or other statuses
+        return null;
       },
     },
   ];
 
   return (
-    <Box
-      sx={{
-        height: 500,
-        width: '100%',
-        '& .actions': {
-          color: 'text.secondary',
-        },
-        '& .textPrimary': {
-          color: 'text.primary',
-        },
-      }}
-    >
-      <DataGrid
-        rows={rows}
-        columns={columns}
-        editMode="row"
-        rowModesModel={rowModesModel}
-        onRowModesModelChange={handleRowModesModelChange}
-        onRowEditStop={handleRowEditStop}
-        processRowUpdate={processRowUpdate}
-        slots={{
-          toolbar: EditToolbar,
+    <div>
+      <WfhButton />
+      <Box
+        sx={{
+          height: 500,
+          width: '100%',
+          '& .actions': {
+            color: 'text.secondary',
+          },
+          '& .textPrimary': {
+            color: 'text.primary',
+          },
         }}
+      >
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          editMode="row"
+          rowModesModel={rowModesModel}
+          onRowModesModelChange={handleRowModesModelChange}
+          onRowEditStop={handleRowEditStop}
+          processRowUpdate={processRowUpdate}
+          getRowId={(row) => row.event_id}  // Add this line
+        // slots={{
+        //   toolbar: EditToolbar,
+        // }}
         slotProps={{
           toolbar: { setRows, setRowModesModel },
         }}
       />
     </Box>
+    </div>
   );
 }

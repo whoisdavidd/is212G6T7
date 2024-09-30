@@ -293,18 +293,40 @@ export default function StaffCalendar() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(`http://localhost:5001/events/${hardcodedStaffId}`);
-        if (!response.ok) {
+        // Fetch regular events
+        const eventsResponse = await fetch(`http://localhost:5001/events/${hardcodedStaffId}`);
+        if (!eventsResponse.ok) {
           throw new Error('Failed to fetch events');
         }
-        const data = await response.json();
-        const mappedEvents = data.map(event => ({
-          id: String(event.event_id),
-          title: event.event_name,
-          start: event.event_date,
-          end: event.event_date,
-        }));
-
+        const eventsData = await eventsResponse.json();
+  
+        // Fetch WFH events
+        const wfhResponse = await fetch(`http://localhost:5002/wfh/${hardcodedStaffId}`);
+        if (!wfhResponse.ok) {
+          throw new Error('Failed to fetch WFH events');
+        }
+        const wfhData = await wfhResponse.json();
+  
+        // Combine and map events
+        const mappedEvents = [
+          ...eventsData.map(event => ({
+            id: String(event.event_id),
+            title: event.event_name,
+            start: event.event_date,
+            end: event.event_date,
+            extendedProps: { type: 'regular' }
+          })),
+          ...wfhData
+            .filter(wfh => !['Cancelled', 'Withdrawn'].includes(wfh.approve_status))
+            .map(wfh => ({
+              id: String(wfh.event_id),
+              title: `WFH: ${wfh.event_name}`,
+              start: wfh.event_date,
+              end: wfh.event_date,
+              extendedProps: { type: 'wfh', status: wfh.approve_status }
+            }))
+        ];
+  
         setEvents(mappedEvents);
         setLoading(false);
       } catch (error) {
@@ -376,6 +398,7 @@ export default function StaffCalendar() {
         initialView="dayGridMonth"
         events={events}
         dateClick={handleDateClick} // Handle date click
+        eventContent={renderEventContent} // Add this line
       />
 
       <Modal show={showModal} onHide={() => setShowModal(false)}>
@@ -427,4 +450,15 @@ export default function StaffCalendar() {
   );
 }
 
+function renderEventContent(eventInfo) {
+  const { event } = eventInfo;
+  const isWfh = event.extendedProps.type === 'wfh';
+  const status = event.extendedProps.status;
 
+  return (
+    <>
+      <b>{event.title}</b>
+      {isWfh && status && <div>Status: {status}</div>}
+    </>
+  );
+}

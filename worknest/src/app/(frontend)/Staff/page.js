@@ -15,10 +15,6 @@ function Staff() {
       <StaffSchedule />
       <StaffCalendar />
       <Summary />
-
-      <div>
-      <WfhButton />
-      </div>
       {/* <StaffCalendarPage /> */}
     </div>
   );
