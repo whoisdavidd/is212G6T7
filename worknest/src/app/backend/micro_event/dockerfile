@@ -1,8 +1,8 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /app/backend/micro_event
 
 # Copy the requirements.txt file into the container
 COPY requirements.txt .
@@ -17,7 +17,7 @@ COPY . .
 EXPOSE 5001
 
 # Set environment variables
-ENV FLASK_APP=micro_schedule.py
+ENV FLASK_APP=micro_event.py
 ENV FLASK_ENV=development
 
 # Run the application
