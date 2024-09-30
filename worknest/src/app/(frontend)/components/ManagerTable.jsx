@@ -8,7 +8,7 @@ import {
     TableRow,
     Paper,
     TableSortLabel,
-    Button, // Import Button from Material-UI
+    Button
 } from '@mui/material';
 import FilterForm from './FilterForm';
 import '../../styles/App.css';
@@ -28,10 +28,21 @@ const ManagerTable = () => {
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
-                const response = await fetch("http://localhost:5000/employee"); // Update with your backend URL
+                const response = await fetch("http://127.0.0.1:5002/test", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                // Ensure we have a valid response
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
                 if (data.code === 200) {
-                    setEmployees(data.data.employees);
+                    setEmployees(data.data.employees);  // Expecting `data.data.employees`
                 } else {
                     console.error("Failed to fetch employees:", data.message);
                 }
@@ -87,7 +98,6 @@ const ManagerTable = () => {
         }));
     };
 
-    // Clear all filters and reset to initial state
     const handleClearFilters = () => {
         setFilters({
             name: '',
@@ -98,11 +108,12 @@ const ManagerTable = () => {
         });
     };
 
+    // Define filterOptions here
     const filterOptions = [
         {
             key: 'name',
             label: 'Name',
-            options: employees.map(employee => `${employee.staff_fname} ${employee.staff_lname}`),
+            options: [...new Set(employees.map(employee => `${employee.staff_fname} ${employee.staff_lname}`))],
             value: filters.name,
             fullWidth: true,
         },
@@ -212,7 +223,6 @@ const ManagerTable = () => {
                                 <TableCell>{`${employee.staff_fname} ${employee.staff_lname}`}</TableCell>
                                 <TableCell>{employee.role}</TableCell>
                                 <TableCell>{employee.country}</TableCell>
-                                {/* Add the 'from' and 'to' fields if they exist */}
                                 <TableCell>{formatDate(employee.from)}</TableCell>
                                 <TableCell>{formatDate(employee.to)}</TableCell>
                             </TableRow>

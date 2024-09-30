@@ -13,10 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose the port your app runs on
-EXPOSE 5005
+EXPOSE 5006
 
 # Set environment variables
-ENV FLASK_APP=complex_HR_view_schedules.py
+ENV FLASK_APP=complex_hr_view_schedule.py
 ENV FLASK_ENV=development
 
 # Run the application

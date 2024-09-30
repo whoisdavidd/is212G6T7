@@ -5,45 +5,58 @@ services:
     build: ./micro_event
     ports:
       - "5001:5000"
+    env_file:
+      - .env
+      
   micro_profile:
     build: ./micro_profile
     ports:
       - "5002:5000"
+    env_file:
+      - .env
       
   micro_request:
     build: ./micro_request
     ports:
       - "5003:5000"
+    env_file:
+      - .env
       
   micro_schedule:
     build: ./micro_schedule
     ports:
       - "5004:5000"
+    env_file:
+      - .env
       
   # Complex Services
   complex_hr_view_schedule:
-    build: ./complex_HR_view_schedule
+    build: ./complex_service_HR
     ports:
       - "5005:5000"
     depends_on:
-      - db  # If this service needs a database connection
+      - db
+    env_file:
+      - .env
 
   complex_view_schedule:
-    build: ./complex_view_schedule
+    build: ./complex_service_staff
     ports:
       - "5006:5000"
     depends_on:
-      - db  # Same here if it needs a database connection
+      - db
+    env_file:
+      - .env
 
-  # Database service for these complex services
-db:
+  # Database service
+  db:
     image: postgres:latest
     ports:
-      - "5432:5432"  # Default port for PostgreSQL
+      - "5434:5432"  # Default port for PostgreSQL
     volumes:
       - db_data:/var/lib/postgresql/data
     env_file:
-      - worknest/worknest/.env
+      - .env
 
 volumes:
   db_data:
