@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-
+from src.app.backend.db import db
 
 load_dotenv()
 
@@ -13,9 +13,12 @@ db_url = os.getenv("DATABASE_URL")
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Javanchok13@localhost:5432/employee'
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+
+
+# db = SQLAlchemy(app)
+db.init_app(app)
 
 class Employees(db.Model):
     __tablename__ = "employee"
@@ -29,6 +32,7 @@ class Employees(db.Model):
     email = db.Column(db.String(50))
     reporting_manager = db.Column(db.Integer, db.ForeignKey('employee.staff_id'))
     role = db.Column(db.Integer, db.ForeignKey('role.role_id'))
+    password = db.Column(db.String(50))
     
     # # Define relationships
     manager = db.relationship('Employees', remote_side=[staff_id], backref='employees')
@@ -44,9 +48,11 @@ class Employees(db.Model):
             'country': self.country,
             'email': self.email,
             'reporting_manager': self.reporting_manager,
-            'role': self.role
+            'password': self.password,
+            'role': self.role,
+           
         }
-    def __init__(self , staff_id, staff_fname, staff_lname, dept, position, country, email, reporting_manager, role):
+    def __init__(self , staff_id, staff_fname, staff_lname, dept, position, country, email, reporting_manager, role,password):
         self.staff_id = staff_id
         self.staff_fname = staff_fname
         self.staff_lname = staff_lname
@@ -55,7 +61,9 @@ class Employees(db.Model):
         self.country = country
         self.email = email
         self.reporting_manager = reporting_manager
+        self.password = password 
         self.role = role
+        
 
     #getters
     def getStaffId(self):
@@ -96,7 +104,48 @@ def get_all():
             "message": "There are no employees."
         }
     ), 404
-
+#Login 
+@app.route("/", methods=["POST"])
+def authentication():
+    email = request.json.get("email")
+    password = request.json.get("password")
+    employee = Employees.query.filter_by(email=email, password=password).first()
+    if employee:
+        return jsonify(
+            {
+                "code": 200,
+                "data": {
+                    "employee": employee.to_dict(),
+                    "department": employee.dept,
+                    "staff_id": employee.staff_id,
+                    "role": employee.role
+                }
+            }
+        )
+    return jsonify(
+        {
+            "code": 404,
+            "message": "Employee not found."
+        }
+    ), 404
+#Manager
+@app.route("/managers/<int:staff_id>", methods=["GET"])
+def GetManagers(staff_id):
+    employee = Employees.query.filter_by(staff_id=staff_id).first()
+    manager = Employees.query.filter_by(staff_id=employee.reporting_manager).first()
+    if manager:
+        return jsonify(
+           {
+            "manager_name": f"{manager.staff_fname} {manager.staff_lname}",
+            "manager_id": manager.staff_id
+            }
+        )
+    return jsonify(
+        {
+            "code": 404,
+            "message": "Manager not found."
+        }
+    ), 404
 
 
 if __name__ == "__main__":

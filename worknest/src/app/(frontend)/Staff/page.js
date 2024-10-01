@@ -1,20 +1,23 @@
 "use client";
 import React, { useState } from 'react';
-import StaffCalendarPage from '../components/StaffCalendarPage';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import StaffCalendar from '../components/StaffCalendar';
+import { Grid2 } from '@mui/material';
+import StaffSchedule from '../components/StaffSchedule';
+import StaffCalendarPage from '../components/StaffCalendarPage';
 import Summary from '../components/Summary';
+import WfhButton from '../components/WfhButton';
 
-function App() {
+function Staff() {
   return (
     <div className="App">
       <ResponsiveAppBar />
-      {/* <StaffCalendarPage /> */}
+      <StaffSchedule />
       <StaffCalendar />
       <Summary />
-
+      {/* <StaffCalendarPage /> */}
     </div>
   );
 }
+export default Staff;
 
-export default App;
