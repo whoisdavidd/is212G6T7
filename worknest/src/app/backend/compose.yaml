@@ -5,6 +5,7 @@ services:
     build: ./micro_event
     ports:
       - "5001:5000"
+      
   micro_profile:
     build: ./micro_profile
     ports:
@@ -36,7 +37,7 @@ services:
       - db  # Same here if it needs a database connection
 
   # Database service for these complex services
-db:
+  db:
     image: postgres:latest
     ports:
       - "5432:5432"  # Default port for PostgreSQL
