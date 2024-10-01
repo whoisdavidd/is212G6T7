@@ -36,15 +36,7 @@ services:
     depends_on:
       - db  # Same here if it needs a database connection
 
-  # Database service for these complex services
-  db:
-    image: postgres:latest
-    ports:
-      - "5432:5432"  # Default port for PostgreSQL
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    env_file:
-      - worknest/.env
+
 
 volumes:
   db_data:
