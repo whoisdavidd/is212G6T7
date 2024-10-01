@@ -26,8 +26,7 @@ services:
     build: ./complex_view_schedule
     ports:
       - "5005:5000"
-    depends_on:
-      - db  # Same here if it needs a database connection
+
 
 
 
