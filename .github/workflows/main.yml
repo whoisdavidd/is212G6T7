@@ -57,6 +57,7 @@ jobs:
     - name: Build Docker image
       run: |
         docker compose -f worknest/src/app/backend/compose.yaml up 
+    
 
     # # Run Tests (if applicable)
     # - name: Run tests
@@ -64,6 +65,10 @@ jobs:
     #     # Run your unit tests or integration tests here
     #     docker exec -it <your_microservice_container_name> pytest
 
+  # Stop and remove Docker containers after the job is done
+    - name: Shut down Docker Compose services
+      run: |
+        docker-compose -f worknest/src/app/backend/compose.yaml down
 
 
   
