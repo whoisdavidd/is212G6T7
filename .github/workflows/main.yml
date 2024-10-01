@@ -1,0 +1,55 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: postgres
+
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Set up Python
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    # Install dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .github/workflows/requirements.txt
+
+    # Build Docker images (if using Docker)
+    - name: Build Docker image
+      run: |
+        docker-compose -f worknest/worknest/src/app/backend/compose.yml up --build -d
+
+    # # Run Tests (if applicable)
+    # - name: Run tests
+    #   run: |
+    #     # Run your unit tests or integration tests here
+    #     docker exec -it <your_microservice_container_name> pytest
+
+
+
+  

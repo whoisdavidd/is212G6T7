@@ -13,7 +13,7 @@ export default function HomePage() {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/", {
+      const response = await fetch("http://127.0.0.1:5002/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,9 +35,6 @@ export default function HomePage() {
         }else{
           window.location.href = "/dashboard";  // Redirect to HR page
         }
-      } else {
-        // Handle login error
-        setErrorMessage(data.message || "Login failed");
       }
     } catch (error) {
       console.error("Error during login:", error);
