@@ -39,6 +39,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r .github/workflows/requirements.txt
 
+    # Load environment variables from .env
+    - name: Load .env
+      run: |
+        if [ -f .env ]; then
+          export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+        fi
+
     # Build Docker images (if using Docker)
     - name: Build Docker image
       run: |
