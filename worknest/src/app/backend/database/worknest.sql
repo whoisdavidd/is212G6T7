@@ -610,6 +610,9 @@ CREATE TABLE event (
    staff_id          INTEGER NOT NULL,    -- Foreign key to employee table
    event_name        VARCHAR(50) NOT NULL,  -- Name of the event
    event_date        DATE NOT NULL,       -- Date of the event
+   start_date        DATE NOT NULL,       -- Start date of the event
+   end_date          DATE NOT NULL,       -- End date of the event
+   reason            VARCHAR(50) NOT NULL, -- Reason for the event   
    reporting_manager VARCHAR(50),        -- Name of the reporting manager
    reporting_manager_id INTEGER,          -- ID of the reporting manager (from employee table)
    department        VARCHAR(50),         -- Department of the staff
