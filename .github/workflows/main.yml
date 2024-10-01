@@ -42,7 +42,7 @@ jobs:
     # Build Docker images (if using Docker)
     - name: Build Docker image
       run: |
-        docker-compose -f worknest/worknest/src/app/backend/compose.yml up --build -d
+        docker-compose -f worknest/worknest/src/app/backend/compose.yaml up --build -d
 
     # # Run Tests (if applicable)
     # - name: Run tests
