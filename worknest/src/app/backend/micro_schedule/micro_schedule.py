@@ -14,7 +14,7 @@ db_url = os.getenv("DATABASE_URL")
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Liverpool13@localhost:5432/employee'
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -23,7 +23,7 @@ class Schedule(db.Model):
     __tablename__ = "schedule"
     
     staff_id = db.Column(db.Integer, primary_key=True)
-    start_date = db.Column(db.String(50), nullable=False)
+    date = db.Column(db.String(50), nullable=False)
     department = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     

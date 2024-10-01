@@ -22,7 +22,7 @@ CREATE TABLE profile (
     position          VARCHAR(50) NOT NULL,    
     country           VARCHAR(50) NOT NULL,
     location          VARCHAR(50) NOT NULL DEFAULT 'OFFICE',  -- Default value corrected
-    email             VARCHAR(50) NOT NULL,
+    email             VARCHAR(50) NOT NULL, 
     password          VARCHAR(50) NOT NULL,
     reporting_manager_id INT,
     role              INTEGER NOT NULL
