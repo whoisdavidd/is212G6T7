@@ -13,13 +13,14 @@ app = Flask(__name__)
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Liverpool13@localhost:5432/employee'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
 class Request(db.Model):
     __tablename__ = "request"
+    request_id = db.Column(db.Integer, primary_key=True, nullable=False)
     staff_id = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
     start_date = db.Column(db.String(50), nullable=False)
@@ -31,7 +32,8 @@ class Request(db.Model):
     day_id = db.Column(db.Integer)
     recurring_days = db.Column(db.Integer)
     
-    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, day_id, recurring_days):
+    def __init__(self, request_id, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, day_id, recurring_days):
+        self.request_id = request_id
         self.staff_id = staff_id
         self.department = department
         self.start_date = start_date
@@ -45,6 +47,7 @@ class Request(db.Model):
         
     def to_dict(self):
         return {
+            'request_id': self.request_id,
             'staff_id': self.staff_id,
             'department': self.department,
             'start_date': self.start_date,
@@ -94,7 +97,7 @@ def approve_request(request_id):
         except Exception as e:
             print(f"Error notifying Schedule microservice: {e}")
 
-@app.route('/request/withdraw/<int:staff_id>', methods=['POST'])
+@app.route('/request/withdraw/<int:staff_id>', methods=['PUT'])
 def withdraw_request(staff_id):
     # Check if user is logged in
     if 'staff_id' not in session or 'role' not in session:
@@ -140,6 +143,58 @@ def withdraw_request(staff_id):
         return jsonify({'message': 'Request withdrawn, but an error occurred while updating schedule', 'error': str(e)}), 500
 
     return jsonify({'message': 'Request withdrawn successfully'}), 200
+
+@app.route('/request/cancel/<int:staff_id>', methods=['PUT'])
+def cancel_request(staff_id):
+    # Check if user is logged in
+    if 'staff_id' not in session or 'role' not in session:
+        return jsonify({'message': 'Unauthorized access'}), 401
+
+    current_staff_id = session['staff_id']
+    current_role = session['role']  # Assuming role '1' is Manager/Director, '2' is Staff
+
+    # Authorization: Staff can cancel their own requests; Managers can cancel any
+    if current_role == 2 and staff_id != current_staff_id:
+        return jsonify({'message': 'Unauthorized to cancel this request'}), 403
+
+    # Fetch the request using staff_id
+    request_obj = Request.query.filter_by(staff_id=staff_id).first()
+    if not request_obj:
+        return jsonify({'message': 'Request not found'}), 404
+
+    # Check if the request is already canceled
+    if request_obj.status.lower() == 'cancelled':
+        return jsonify({'message': 'Request is already canceled'}), 400
+
+    # Only allow cancellation if the status is pending
+    if request_obj.status.lower() != 'pending':
+        return jsonify({'message': 'Only pending requests can be canceled'}), 400
+
+    # Proceed to cancel the request
+    request_obj.status = 'Cancelled'
+    db.session.commit()
+
+    # Optionally, communicate with the Schedule microservice to revert the schedule
+    schedule_update_url = "http://localhost:5004/schedule/update"  # Update if different
+
+    profile_update_data = {
+        'staff_id': request_obj.staff_id,
+        'start_date': request_obj.start_date,
+        'department': request_obj.department,
+        'status': request_obj.status
+    }
+
+    try:
+        response = requests.post(schedule_update_url, json=profile_update_data)
+        if response.status_code != 200:
+            # Log the error or handle it as needed
+            return jsonify({'message': 'Request canceled, but failed to update schedule'}), 500
+    except Exception as e:
+        # Log the exception
+        return jsonify({'message': 'Request canceled, but an error occurred while updating schedule', 'error': str(e)}), 500
+
+    return jsonify({'message': 'Request canceled successfully'}), 200
+
 
 if __name__ == '__main__':
     app.run(port=5003, debug=True)

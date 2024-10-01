@@ -586,7 +586,8 @@ INSERT INTO profile(Staff_ID,Staff_FName,Staff_LName,department,Position,Country
 
 
 CREATE TABLE request (
-    staff_id INT PRIMARY KEY,
+    request_id INT PRIMARY KEY,
+    staff_id INT NOT NULL,
     department VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,               -- Using DATE for storing dates
     reason VARCHAR(50) NOT NULL,
