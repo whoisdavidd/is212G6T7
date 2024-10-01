@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # Set a reasonable timeout (10 minutes here)
 
     services:
       postgres:
