@@ -6,6 +6,8 @@ WORKDIR /app/backend/micro_event
 
 # Copy the requirements.txt file into the container
 COPY requirements.txt .
+# Install PostgreSQL development libraries and other dependencies
+RUN apt-get update && apt-get install -y libpq-dev gcc
 
 # Install any dependencies specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
