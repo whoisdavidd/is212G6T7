@@ -19,6 +19,8 @@ services:
     build: ./micro_request
     ports:
       - "5003:5000"
+    env_file:
+      - .env
   
       
   micro_schedule:
