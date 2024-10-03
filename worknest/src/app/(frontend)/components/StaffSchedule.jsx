@@ -311,6 +311,7 @@ export default function FullFeaturedCrudGrid() {
           const date = new Date(item.start_date); // Parse the date
           const formattedDate = date.toISOString().split('T')[0]; // Format to 'YYYY-MM-DD'
           return {
+            request_id: item.request_id,
             staff_id: item.staff_id,
             department: item.department,
             start_date: formattedDate, // Ensure the parsed date is valid
@@ -349,7 +350,7 @@ export default function FullFeaturedCrudGrid() {
       headerName: 'Actions',
       width: 150,
       renderCell: (params) => {
-        const { status, staff_id } = params.row;
+        const { status, request_id } = params.row;
 
         return (
           <div>
@@ -357,7 +358,7 @@ export default function FullFeaturedCrudGrid() {
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={() => handleCancelClick(staff_id)}
+                onClick={() => handleCancelClick(request_id)}
               >
                 Cancel
               </Button>
@@ -366,7 +367,7 @@ export default function FullFeaturedCrudGrid() {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => handleWithdrawClick(staff_id)}
+                onClick={() => handleWithdrawClick(request_id)}
               >
                 Withdraw
               </Button>
@@ -377,47 +378,95 @@ export default function FullFeaturedCrudGrid() {
     },
   ];
 
-  const handleWithdrawClick = async (staff_id) => {
+  const handleWithdrawClick = async (request_id) => {
     try {
-      const response = await fetch(`http://localhost:5003/request/withdraw/${staff_id}`, {
+      // Retrieve data from sessionStorage
+      const role = sessionStorage.getItem('role');
+      const staffId = sessionStorage.getItem('staff_id');
+      const department = sessionStorage.getItem('department');
+  
+      // Validate that the necessary data exists
+      if (!role || !staffId || !department) {
+        setErrorMessage("User session is invalid. Please log in again.");
+        alert("User session is invalid. Please log in again.");
+        return;
+      }
+  
+      // Make the PUT request with custom headers
+      const response = await fetch(`http://localhost:5003/request/withdraw/${request_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Role': role,
+          'X-Staff-ID': staffId,
+          'X-Department': department,
         },
+        credentials: 'include', // Include cookies in the request
       });
-
+  
+      const data = await response.json();
       if (response.ok) {
-        const updatedData = await response.json();
         // Update the rows state to reflect the withdrawn status
-        setRows(rows.map(row => (row.staff_id === staff_id ? { ...row, status: 'Withdrawn' } : row)));
-        console.log(`Withdrawn request for Staff ID: ${staff_id}`);
+        setRows(rows.map(row => (
+          row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
+        )));
+        console.log(`Withdrawn request for Request ID: ${request_id}`);
+        alert("Request withdrawn successfully.");
       } else {
-        console.error('Failed to withdraw request');
+        console.error('Failed to withdraw request:', data.message);
+        setErrorMessage(data.message || "Failed to withdraw the request.");
+        alert(`Error: ${data.message}`);
       }
     } catch (error) {
       console.error('Error withdrawing request:', error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+      alert("An unexpected error occurred. Please try again.");
     }
   };
 
-  const handleCancelClick = async (staff_id) => {
+  const handleCancelClick = async (request_id) => {
     try {
-      const response = await fetch(`http://localhost:5003/request/cancel/${staff_id}`, {
+      // Retrieve data from sessionStorage
+      const role = sessionStorage.getItem('role');
+      const staffId = sessionStorage.getItem('staff_id');
+      const department = sessionStorage.getItem('department');
+  
+      // Validate that the necessary data exists
+      if (!role || !staffId || !department) {
+        setErrorMessage("User session is invalid. Please log in again.");
+        alert("User session is invalid. Please log in again.");
+        return;
+      }
+  
+      // Make the PUT request with custom headers
+      const response = await fetch(`http://localhost:5003/request/cancel/${request_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Role': role,
+          'X-Staff-ID': staffId,
+          'X-Department': department,
         },
+        credentials: 'include', // Include cookies in the request
       });
-
+  
+      const data = await response.json();
       if (response.ok) {
-        const updatedData = await response.json();
         // Update the rows state to reflect the cancelled status
-        setRows(rows.map(row => (row.staff_id === staff_id ? { ...row, status: 'Cancelled' } : row)));
-        console.log(`Cancelled request for Staff ID: ${staff_id}`);
+        setRows(rows.map(row => (
+          row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
+        )));
+        console.log(`Cancelled request for Request ID: ${request_id}`);
+        alert("Request canceled successfully.");
       } else {
-        console.error('Failed to cancel request');
+        console.error('Failed to cancel request:', data.message);
+        setErrorMessage(data.message || "Failed to cancel the request.");
+        alert(`Error: ${data.message}`);
       }
     } catch (error) {
       console.error('Error cancelling request:', error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+      alert("An unexpected error occurred. Please try again.");
     }
   };
 

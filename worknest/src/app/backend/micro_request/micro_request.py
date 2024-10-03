@@ -5,22 +5,28 @@ import os
 from flask_cors import CORS
 import requests
 
-
 load_dotenv()
 
 db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
 
-CORS(app)
+CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  # Replace with your frontend's URL
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db =SQLAlchemy(app)
+# Set the secret key to a unique, unpredictable value
+app.secret_key = os.getenv('SECRET_KEY')  # Replace with a secure key
+
+# Alternatively, use environment variables for better security
+# app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
+
+db = SQLAlchemy(app)
+# db =SQLAlchemy(app)
 
 
-class Request(db.Model):
+class RequestModel(db.Model):
     __tablename__ = "request"
     request_id = db.Column(db.Integer, primary_key=True, nullable=False)
     staff_id = db.Column(db.Integer, nullable=False)
@@ -61,23 +67,33 @@ class Request(db.Model):
             'day_id': self.day_id,
             'recurring_days': self.recurring_days
         }
+    
+
+
+
+# ---------------------------------- Get All Requests ----------------------------------
 
 @app.route('/request', methods=['GET'])
 def get_all_requests():
-    requests = Request.query.all()
+    requests = RequestModel.query.all()
     return jsonify([request.to_dict() for request in requests])
+
+
+
+
+# ---------------------------------- Add Request ----------------------------------
 
 @app.route('/add_request/<int:staff_id>', methods=['POST'])
 def add_request(staff_id):
     data = request.get_json()
-    new_request = Request(staff_id=staff_id, department=data['department'], start_date=data['start_date'], reason=data['reason'], duration=data['duration'], status=data['status'], reporting_manager_id=data['reporting_manager_id'], reporting_manager_name=data['reporting_manager_name'])
+    new_request = RequestModel(staff_id=staff_id, department=data['department'], start_date=data['start_date'], reason=data['reason'], duration=data['duration'], status=data['status'], reporting_manager_id=data['reporting_manager_id'], reporting_manager_name=data['reporting_manager_name'])
     db.session.add(new_request)
     db.session.commit()
     return jsonify(new_request.to_dict())
 
 def approve_request(request_id):
     # Approve the request (you may already have this logic in place)
-    request = Request.query.get(request_id)
+    request = RequestModel.query.get(request_id)
     if request:
         request.status = 'approved'
         db.session.commit()
@@ -99,104 +115,165 @@ def approve_request(request_id):
         except Exception as e:
             print(f"Error notifying Schedule microservice: {e}")
 
-@app.route('/request/withdraw/<int:staff_id>', methods=['PUT'])
-def withdraw_request(staff_id):
-    # Check if user is logged in
-    if 'staff_id' not in session or 'role' not in session:
-        return jsonify({'message': 'Unauthorized access'}), 401
 
-    current_staff_id = session['staff_id']
-    current_role = session['role']  # Assuming role '1' is Manager/Director, '2' is Staff
 
-    # Authorization: Staff can withdraw their own requests; Managers can withdraw any
-    if current_role == 2 and staff_id != current_staff_id:
-        return jsonify({'message': 'Unauthorized to withdraw this request'}), 403
 
-    # Fetch the request using staff_id
-    request_obj = Request.query.filter_by(staff_id=staff_id).first()
-    if not request_obj:
-        return jsonify({'message': 'Request not found'}), 404
+# ---------------------------------- Withdraw Request ----------------------------------
 
-    # Check if the request is already withdrawn
-    if request_obj.status.lower() == 'withdrawn':
-        return jsonify({'message': 'Request is already withdrawn'}), 400
+@app.route('/request/withdraw/<int:request_id>', methods=['PUT'])
+def withdraw_request(request_id):
+    # Retrieve custom headers
+    role = request.headers.get('X-Role')
+    client_staff_id = request.headers.get('X-Staff-ID')
+    manager_department = request.headers.get('X-Department')
+
+    # Debugging: Print retrieved headers
+    print(f"Role: {role}, Client Staff ID: {client_staff_id}, Manager Department: {manager_department}")
+
+    # Validate the presence of necessary headers
+    if not role or not client_staff_id or not manager_department:
+        return jsonify({'message': 'Missing authentication headers.'}), 400
+
+    # Convert role and client_staff_id to integers
+    try:
+        role = int(role)
+        client_staff_id = int(client_staff_id)
+    except ValueError:
+        return jsonify({'message': 'Invalid data types for role or staff ID.'}), 400
+
+    # Authorization Logic:
+    # Role 1: Manager can withdraw any request within their department
+    # Role 2: Staff can only withdraw their own requests
+    if role == 2:
+        # Staff attempting to withdraw their own request
+        request_obj = RequestModel.query.filter_by(
+            request_id=request_id, staff_id=client_staff_id, status='pending'
+        ).first()
+        if not request_obj:
+            return jsonify({'message': 'Unauthorized to withdraw this request or request already processed.'}), 403
+    elif role == 1:
+        # Manager attempting to withdraw a request within their department
+        request_obj = RequestModel.query.filter_by(
+            request_id=request_id, status='pending', department=manager_department
+        ).first()
+        if not request_obj:
+            return jsonify({'message': 'Request not found, already processed, or not within your department.'}), 404
+    else:
+        return jsonify({'message': 'Invalid role.'}), 400
 
     # Proceed to withdraw the request
     request_obj.status = 'Withdrawn'
     db.session.commit()
 
+    # Debugging: Print updated request object
+    print(f"Updated Request: {request_obj.to_dict()}")
+
     # Communicate with the Schedule microservice to revert the schedule
     schedule_update_url = "http://localhost:5004/schedule/update"  # Update if different
-
-    profile_update_data = {
+    schedule_update_data = {
         'staff_id': request_obj.staff_id,
-        'start_date': request_obj.start_date,
+        'date': request_obj.start_date.isoformat(),
         'department': request_obj.department,
         'status': request_obj.status
     }
 
     try:
-        response = requests.post(schedule_update_url, json=profile_update_data)
+        response = requests.post(schedule_update_url, json=schedule_update_data)
         if response.status_code != 200:
             # Log the error or handle it as needed
-            return jsonify({'message': 'Request withdrawn, but failed to update schedule'}), 500
+            print(f"Schedule microservice responded with status code {response.status_code}")
+            return jsonify({'message': 'Request withdrawn, but failed to update schedule.'}), 500
     except Exception as e:
         # Log the exception
-        return jsonify({'message': 'Request withdrawn, but an error occurred while updating schedule', 'error': str(e)}), 500
+        print(f"Exception occurred while updating schedule: {e}")
+        return jsonify({'message': 'Request withdrawn, but an error occurred while updating schedule.', 'error': str(e)}), 500
 
-    return jsonify({'message': 'Request withdrawn successfully'}), 200
+    return jsonify({'message': 'Request withdrawn successfully.'}), 200
 
-@app.route('/request/cancel/<int:staff_id>', methods=['PUT'])
-def cancel_request(staff_id):
-    # Check if user is logged in
-    if 'staff_id' not in session or 'role' not in session:
-        return jsonify({'message': 'Unauthorized access'}), 401
 
-    current_staff_id = session['staff_id']
-    current_role = session['role']  # Assuming role '1' is Manager/Director, '2' is Staff
 
-    # Authorization: Staff can cancel their own requests; Managers can cancel any
-    if current_role == 2 and staff_id != current_staff_id:
-        return jsonify({'message': 'Unauthorized to cancel this request'}), 403
 
-    # Fetch the request using staff_id
-    request_obj = Request.query.filter_by(staff_id=staff_id).first()
-    if not request_obj:
-        return jsonify({'message': 'Request not found'}), 404
+# ---------------------------------- Cancel Request ----------------------------------
 
-    # Check if the request is already canceled
-    if request_obj.status.lower() == 'cancelled':
-        return jsonify({'message': 'Request is already canceled'}), 400
+@app.route('/request/cancel/<int:request_id>', methods=['PUT'])
+def cancel_request(request_id):
+    # Retrieve custom headers
+    role = request.headers.get('X-Role')
+    client_staff_id = request.headers.get('X-Staff-ID')
+    manager_department = request.headers.get('X-Department')
 
-    # Only allow cancellation if the status is pending
-    if request_obj.status.lower() != 'pending':
-        return jsonify({'message': 'Only pending requests can be canceled'}), 400
+    # Debugging: Print retrieved headers
+    print(f"Role: {role}, Client Staff ID: {client_staff_id}, Manager Department: {manager_department}, Request ID: {request_id}")
+
+    # Validate the presence of necessary headers
+    if not role or not client_staff_id or not manager_department:
+        return jsonify({'message': 'Missing authentication headers.'}), 400
+
+    # Convert role and client_staff_id to integers
+    try:
+        role = int(role)
+        client_staff_id = int(client_staff_id)
+    except ValueError:
+        return jsonify({'message': 'Invalid data types for role or staff ID.'}), 400
+
+    # Authorization Logic:
+    # Role 1: Manager can cancel any request within their department
+    # Role 2: Staff can only cancel their own requests
+    if role == 2:
+        # Staff attempting to cancel their own request
+        request_obj = RequestModel.query.get(request_id)
+
+        print("HELLLLLLLLOOOOOOOOO", request_obj)
+
+        if not request_obj:
+            return jsonify({'message': 'Unauthorized to cancel this request or request already processed.'}), 403
+    elif role == 1:
+        # Manager attempting to cancel a request within their department
+        request_obj = RequestModel.query.filter_by(
+            request_id=request_id, status='pending', department=manager_department
+        ).first()
+        if not request_obj:
+            return jsonify({'message': 'Request not found, already processed, or not within your department.'}), 404
+    else:
+        return jsonify({'message': 'Invalid role.'}), 400
 
     # Proceed to cancel the request
     request_obj.status = 'Cancelled'
     db.session.commit()
 
-    # Optionally, communicate with the Schedule microservice to revert the schedule
-    schedule_update_url = "http://localhost:5004/schedule/update"  # Update if different
+    # Debugging: Print updated request object
+    print(f"Updated Request: {request_obj.to_dict()}")
 
-    profile_update_data = {
+    # Communicate with the Schedule microservice to update the schedule
+    schedule_update_url = "http://localhost:5004/schedule/update"  # Update if necessary
+    schedule_update_data = {
         'staff_id': request_obj.staff_id,
-        'start_date': request_obj.start_date,
+        'date': request_obj.start_date.isoformat(),
         'department': request_obj.department,
         'status': request_obj.status
     }
 
     try:
-        response = requests.post(schedule_update_url, json=profile_update_data)
+        response = requests.post(schedule_update_url, json=schedule_update_data)
         if response.status_code != 200:
             # Log the error or handle it as needed
-            return jsonify({'message': 'Request canceled, but failed to update schedule'}), 500
+            print(f"Schedule microservice responded with status code {response.status_code}")
+            return jsonify({'message': 'Request canceled, but failed to update schedule.'}), 500
     except Exception as e:
         # Log the exception
-        return jsonify({'message': 'Request canceled, but an error occurred while updating schedule', 'error': str(e)}), 500
+        print(f"Exception occurred while updating schedule: {e}")
+        return jsonify({
+            'message': 'Request canceled, but an error occurred while updating schedule.',
+            'error': str(e)
+        }), 500
 
-    return jsonify({'message': 'Request canceled successfully'}), 200
+    return jsonify({'message': 'Request canceled successfully.'}), 200
 
+
+
+
+
+# ---------------------------------- Main ----------------------------------
 
 if __name__ == '__main__':
     app.run(port=5003, debug=True)
