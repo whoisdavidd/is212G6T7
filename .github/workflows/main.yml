@@ -49,7 +49,7 @@ jobs:
   
     # Load environment variables from .env
     - name: Load environment variables from .env
-      run: dotenv -- echo "Environment variables loaded"
+      run: dotenv -f .env run echo "Loaded .env file"
 
     # Build Docker images (if using Docker)
     - name: Build Docker image
