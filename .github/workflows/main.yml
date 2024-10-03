@@ -45,14 +45,17 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libpq-dev gcc
-
-  
+    - name: Load .env
+      run: |
+        if [ -f .env ]; then
+          export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+        fi
 
 
     # Build Docker images (if using Docker)
     - name: Build Docker image
       run: |
-        dotenv -- docker compose -f worknest/src/app/backend/compose.yaml up 
+        docker compose -f worknest/src/app/backend/compose.yaml up 
 
 
 
