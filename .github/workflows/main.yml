@@ -46,13 +46,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libpq-dev gcc
 
+    # Install dotenv CLI
+    - name: Install dotenv
+      run: |
+        npm install -g dotenv-cli
 
     # Load environment variables from .env
-    - name: Load .env
-      run: |
-        if [ -f .env ]; then
-          export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
-        fi
+    - name: Load .env using dotenv
+      run: dotenv -e .env -- some_command_here
 
     # Build Docker images (if using Docker)
     - name: Build Docker image
