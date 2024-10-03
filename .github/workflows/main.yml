@@ -47,15 +47,14 @@ jobs:
         sudo apt-get install -y libpq-dev gcc
 
   
-    # Load environment variables from .env
-    - name: Load environment variables from .env
-      run: dotenv -f .env run echo "Loaded .env file"
+
 
     # Build Docker images (if using Docker)
     - name: Build Docker image
       run: |
-        docker compose -f worknest/src/app/backend/compose.yaml up 
-    
+        dotenv -- docker compose -f worknest/src/app/backend/compose.yaml up 
+
+
 
     # # Run Tests (if applicable)
     # - name: Run tests
