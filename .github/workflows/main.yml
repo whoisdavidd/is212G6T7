@@ -54,7 +54,7 @@ jobs:
     # Build Docker images (if using Docker)
     - name: Build Docker image
       run: |
-        docker compose  --env-file worknest/src/app/backend/.env -f worknest/src/app/backend/compose.yaml up 
+        docker compose  --env-file worknest/src/app/backend/.env -f worknest/src/app/backend/compose.yaml up -d
 
 
 
