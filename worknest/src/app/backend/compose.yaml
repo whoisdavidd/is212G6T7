@@ -5,27 +5,37 @@ services:
     build: ./micro_event
     ports:
       - "5001:5000"
+    env_file:
+      - .env
       
   micro_profile:
     build: ./micro_profile
     ports:
       - "5002:5000"
+    env_file:
+      - .env
       
   micro_request:
     build: ./micro_request
     ports:
       - "5003:5000"
+    env_file:
+      - .env
       
   micro_schedule:
     build: ./micro_schedule
     ports:
       - "5004:5000"
+    env_file:
+      - .env
       
 
   complex_view_schedule:
     build: ./complex_service(staff)
     ports:
       - "5005:5000"
+    env_file:
+      - .env
 
 
 

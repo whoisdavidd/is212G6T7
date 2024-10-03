@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_cors import CORS
-from worknest.src.app.backend.db import db
+
 
 load_dotenv()
 
@@ -15,7 +15,7 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
+db =SQLAlchemy(app)
 
 class event(db.Model):
     __tablename__ = 'event'
