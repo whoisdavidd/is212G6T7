@@ -48,8 +48,8 @@ jobs:
 
   
     # Load environment variables from .env
-    - name: Load .env using dotenv
-      run: dotenv -e .env -- some_command_here
+    - name: Load environment variables from .env
+      run: dotenv -- echo "Environment variables loaded"
 
     # Build Docker images (if using Docker)
     - name: Build Docker image
