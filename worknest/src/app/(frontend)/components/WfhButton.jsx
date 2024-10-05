@@ -20,7 +20,7 @@ const fetchManagers = async () => {
   }
 
   try {
-    const response = await fetch(`http://127.0.0.1:5000/managers/${staff_id}`, {
+    const response = await fetch(`http://127.0.0.1:5002/managers/${staff_id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -59,7 +59,7 @@ const createWFHEvent = async (startDate, endDate, reason, manager) => {
         start_date: startDate,
         end_date: endDate,
         reason: reason,
-        reporting_manager: manager.manager_name,  // Use manager's name
+        reporting_manager_name: manager.manager_name,  // Use manager's name
         reporting_manager_id: manager.manager_id, // Use manager's ID
         department: employeeDepartment,
         event_type : "WFH"
@@ -152,7 +152,7 @@ export default function WfhButton() {
           {/* Autocomplete for manager's name */}
           <Autocomplete
             options={managers}  // managers is now always an array
-            getOptionLabel={(option) => option.manager_name}  // manager_name from API
+            getOptionLabel={(option) => option.reporting_manager_name}  // manager_name from API
             onChange={handleManagerChange}
             renderInput={(params) => (
               <TextField

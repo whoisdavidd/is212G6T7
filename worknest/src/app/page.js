@@ -25,9 +25,9 @@ export default function HomePage() {
       if (response.ok) {
         // Handle successful login (e.g., save a token or redirect)
         console.log("Login successful:", data);
-        localStorage.setItem("role", data.data.role);
-        localStorage.setItem("staff_id", data.data.staff_id);
-        localStorage.setItem("department", data.data.department);
+        sessionStorage.setItem("role", data.data.role);
+        sessionStorage.setItem("staff_id", data.data.staff_id);
+        sessionStorage.setItem("department", data.data.department);
         if(data.data.role === "1"){
           window.location.href = "/Manager";  // Redirect to HR page
         }else if (data.data.role == 2) {
