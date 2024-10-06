@@ -3,9 +3,7 @@ import React from 'react';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import StaffCalendar from '../components/StaffCalendar';
 import StaffSchedule from '../components/StaffSchedule';
-import Summary from '../components/Summary';
-import WfhButton from '../components/WfhButton';
-import { Grid2 } from '@mui/material'; // Import Grid from MUI
+
 import Stack from '@mui/material/Stack';
 
 
@@ -13,6 +11,7 @@ function Staff() {
   return (
     <div className="App">
       <ResponsiveAppBar />
+
       <Stack spacing={2} alignItems="center"> {/* Centered alignment for the column layout */}
         <Stack sx={{ width: '100%', height: '400px', overflow: 'auto' }}> {/* Fixed height for calendar */}
           <StaffCalendar />
