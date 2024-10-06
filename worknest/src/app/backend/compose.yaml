@@ -31,7 +31,7 @@ services:
       
 
   complex_view_schedule:
-    build: ./complex_service(staff)
+    build: ./complex_service_staff
     ports:
       - "5005:5000"
     env_file:
