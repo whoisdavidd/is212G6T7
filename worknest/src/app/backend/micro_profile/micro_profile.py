@@ -11,7 +11,7 @@ load_dotenv()
 db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -112,6 +112,34 @@ def authentication():
             "message": "Employee not found."
         }
     ), 404
+
+@app.route('/test', methods=['GET'])
+def test_route():
+    try:
+        profiles = Profile.query.all()  # Fetch all profiles from the database
+        if not profiles:
+            return jsonify({
+                "code": 404,
+                "message": "No profiles found."
+            }), 404
+        
+        employees = [profile.to_dict() for profile in profiles]  # Convert each profile to a dictionary
+
+        data = {
+            "code": 200,
+            "data": {
+                "employees": employees  # List of employees
+            }
+        }
+        return jsonify(data), 200
+    except Exception as e:
+        print(f"Error fetching profiles: {str(e)}")  # Print the error message for debugging
+        return jsonify({
+            "code": 500,
+            "message": "An internal server error occurred."  # Error message
+        }), 500
+
+
 if __name__ == '__main__':
     app.run(port=5002, debug=True)                
 
