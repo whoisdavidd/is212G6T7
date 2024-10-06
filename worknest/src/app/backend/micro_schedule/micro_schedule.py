@@ -4,12 +4,12 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-
+ 
 
 load_dotenv()
 
 
-db_url = os.getenv("DATABASE_URL")
+db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
 CORS(app)
@@ -17,25 +17,26 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db =SQLAlchemy(app)
+
 
 class Schedule(db.Model):
     __tablename__ = "schedule"
     
     staff_id = db.Column(db.Integer, primary_key=True)
-    start_date = db.Column(db.String(50), nullable=False)
+    date = db.Column(db.String(50), nullable=False)
     department = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     
-    def __init__(self, staff_id, start_date, department, status):
+    def __init__(self, staff_id, date, department, status):
         self.staff_id = staff_id
-        self.start_date = start_date
+        self.date = date
         self.department = department
         self.status = status
     def to_dict(self):
         return {
             'staff_id': self.staff_id,
-            'start_date': self.start_date,
+            'date': self.date,
             'department': self.department,
             'status': self.status
         }
@@ -46,7 +47,7 @@ def update_schedule():
         staff_id = data['staff_id']
         department = data['department']
         status = data['status']
-        start_date = data['start_date']
+        date = data['date']
         
 
         # Find the corresponding staff entry in the Schedule table
@@ -54,7 +55,7 @@ def update_schedule():
 
         if schedule_entry:
             # Update the existing schedule entry
-            schedule_entry.start_date = start_date
+            schedule_entry.start_date = date
             schedule_entry.department = department
             schedule_entry.status = status
             db.session.commit()
@@ -63,7 +64,7 @@ def update_schedule():
             # If no existing entry, create a new one
             new_schedule = Schedule(
                 staff_id=staff_id,
-                start_date=start_date,
+                date=date,
                 department=department,
                 status=status
             )

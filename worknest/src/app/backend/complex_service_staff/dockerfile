@@ -1,10 +1,13 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /app/backend/complex_service(staff)
 
 # Copy the requirements.txt file into the container
 COPY requirements.txt .
+
+# Install PostgreSQL development libraries and other dependencies
+RUN apt-get update && apt-get install -y libpq-dev gcc
 
 # Install any dependencies specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
@@ -13,11 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose the port your app runs on
-EXPOSE 5006
+EXPOSE 5005
 
 # Set environment variables
 ENV FLASK_APP=complex_view_schedule.py
 ENV FLASK_ENV=development
 
 # Run the application
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["python", "complex_view_schedule.py"]

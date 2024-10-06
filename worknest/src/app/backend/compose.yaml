@@ -1,4 +1,4 @@
-version: '3'
+
 services:
   # Microservices
   micro_event:
@@ -29,34 +29,16 @@ services:
     env_file:
       - .env
       
-  # Complex Services
-  complex_hr_view_schedule:
-    build: ./complex_service_HR
-    ports:
-      - "5005:5000"
-    depends_on:
-      - db
-    env_file:
-      - .env
 
   complex_view_schedule:
-    build: ./complex_service_staff
+    build: ./complex_service(staff)
     ports:
-      - "5006:5000"
-    depends_on:
-      - db
+      - "5005:5000"
     env_file:
       - .env
 
-  # Database service
-  db:
-    image: postgres:latest
-    ports:
-      - "5434:5432"  # Default port for PostgreSQL
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    env_file:
-      - .env
+
+
 
 volumes:
   db_data:

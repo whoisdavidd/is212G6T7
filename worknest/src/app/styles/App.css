@@ -111,11 +111,4 @@
     border: none;
     cursor: pointer;
   }
-
-  .table-container {
-    padding: 20px; /* Optional padding around the table */
-    flex-grow: 1; /* Allow the container to grow and take available space beside the sidebar */
-}
-
-
   

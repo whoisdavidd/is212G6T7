@@ -5,11 +5,10 @@ from dotenv import load_dotenv
 import os
 from flask_cors import CORS
 
-
 load_dotenv()
 
 
-db_url = os.getenv("DATABASE_URL")
+db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -17,7 +16,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db =SQLAlchemy(app)
 
 class Profile(db.Model):
     __tablename__ = "profile"
@@ -104,7 +103,6 @@ def authentication():
                     "position": user.position,
                     'role': user.role,
                     'staff_id': user.staff_id
-                    
                 }
             }
         )

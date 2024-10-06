@@ -1,15 +1,18 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /app/backend/micro_schedule
 
 # Copy the requirements.txt file into the container
 COPY requirements.txt .
 
+# Install PostgreSQL development libraries and other dependencies
+RUN apt-get update && apt-get install -y libpq-dev gcc
+
 # Install any dependencies specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the current directory contents into the container at /app
+# Copy the entire project into the /app directory
 COPY . .
 
 # Expose the port your app runs on
@@ -19,5 +22,8 @@ EXPOSE 5004
 ENV FLASK_APP=micro_schedule.py
 ENV FLASK_ENV=development
 
+# Set PYTHONPATH to include the src directory
+ENV PYTHONPATH=/app/src
+
 # Run the application
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["python", "micro_schedule.py"]

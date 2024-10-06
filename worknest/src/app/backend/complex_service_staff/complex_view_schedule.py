@@ -50,4 +50,4 @@ def get_schedule():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5005, debug=True)

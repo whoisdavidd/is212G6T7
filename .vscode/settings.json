@@ -1,5 +1,7 @@
 {
     "python.analysis.extraPaths": [
-        "./worknest/src"
+        "./worknest/src",
+        "./worknest/src/app",
+        "./worknest/src/app/backend"
     ]
 }

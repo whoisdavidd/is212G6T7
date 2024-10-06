@@ -22,7 +22,7 @@ CREATE TABLE profile (
     position          VARCHAR(50) NOT NULL,    
     country           VARCHAR(50) NOT NULL,
     location          VARCHAR(50) NOT NULL DEFAULT 'OFFICE',  -- Default value corrected
-    email             VARCHAR(50) NOT NULL,
+    email             VARCHAR(50) NOT NULL, 
     password          VARCHAR(50) NOT NULL,
     reporting_manager_id INT,
     role              INTEGER NOT NULL
@@ -586,19 +586,22 @@ INSERT INTO profile(Staff_ID,Staff_FName,Staff_LName,department,Position,Country
 
 
 CREATE TABLE request (
-    staff_id INT PRIMARY KEY,
+    request_id INT PRIMARY KEY,
+    staff_id INT NOT NULL,
     department VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,               -- Using DATE for storing dates
     reason VARCHAR(50) NOT NULL,
     duration VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL,
     reporting_manager_id INT,
-    reporting_manager_name VARCHAR(50)
+    reporting_manager_name VARCHAR(50),
+    day_id SERIAL NOT NULL,
+    recurring_days INT[]
 );
 
 CREATE table schedule(
     staff_id INT PRIMARY KEY,
-    start_date DATE NOT NULL,
+    date DATE NOT NULL,
     department VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL
 );
