@@ -29,7 +29,12 @@ const HR = () => {
         console.error("Error fetching PieChart data:", error);
       }
     };
-    fetchPieChartData();
+    const intervalId = setInterval(() => {
+      fetchPieChartData();
+    }, 5000); // 5000ms = 5 seconds
+  
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   // Fetch data for Bar Chart
@@ -44,8 +49,12 @@ const HR = () => {
         console.error("Error fetching BarChart data:", error);
       }
     };
-
-    fetchBarChartData();
+    const intervalId = setInterval(() => {
+      fetchBarChartData();
+    }, 5000); // 5000ms = 5 seconds
+  
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   // Fetch data for Table
@@ -75,8 +84,14 @@ const HR = () => {
         console.error("Error fetching Table data:", error);
       }
     };
+    const intervalId = setInterval(() => {
+      fetchTableData();
+    }, 5000); // 5000ms = 5 seconds
+    
+      // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
 
-    fetchTableData();
+
   }, []);
   const exportCSV = () => {
     const csvRows = [];
