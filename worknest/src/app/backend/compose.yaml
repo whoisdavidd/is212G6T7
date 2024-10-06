@@ -21,7 +21,6 @@ services:
       - "5003:5000"
     env_file:
       - .env
-  
       
   micro_schedule:
     build: ./micro_schedule
@@ -32,7 +31,7 @@ services:
       
 
   complex_view_schedule:
-    build: ./complex_service(staff)
+    build: ./complex_service_staff
     ports:
       - "5005:5000"
     env_file:

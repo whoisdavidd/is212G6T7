@@ -12,7 +12,7 @@ load_dotenv()
 db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -173,6 +173,7 @@ def get_barchart_data():
             {"label": "OFFICE", "data": office_data},  # Office counts for each department
         ]
     })
+
 
 if __name__ == '__main__':
     app.run(port=5002, debug=True)                

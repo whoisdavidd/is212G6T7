@@ -1,28 +1,69 @@
 .staff-calendar-page {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-}
-  
-  .sidebar {
-    background-color: #f8f9fa;
+    display: grid;
+    grid-template-columns: 225px 1fr; /* Sidebar + Main Content */
+    gap: 20px;
     padding: 20px;
+  }
+  
+  /* Sidebar container */
+.sidebar {
+    width: 225px;
     height: 100vh;
+    background-color: #fff;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
   
-  .sidebar h2 {
-    margin-bottom: 20px;
-  }
-  
-  .sidebar ul {
+  /* Sidebar menu */
+  .sidebar-menu {
     list-style: none;
     padding: 0;
+    margin: 0;
   }
   
-  .sidebar ul li {
-    padding: 10px 0;
+  .sidebar-menu li {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    padding: 15px 10px; /* Added padding for better spacing */
+    color: #333;
+    transition: background-color 0.3s ease;
+  }
+  
+  .sidebar-menu li i {
+    margin-right: 15px; /* Spacing between icon and text */
+    font-size: 1.2rem;  /* Adjusted icon size */
+    color: #333;
+  }
+  
+  .sidebar-menu li:hover {
+    background-color: #f5f5f5;
     cursor: pointer;
   }
+  
+  /* Sidebar footer */
+  .sidebar-footer {
+    margin-top: auto;
+  }
+  
+  .sidebar-footer a {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 10px;
+    text-decoration: none;
+  }
+  
+  .sidebar-footer a i {
+    margin-right: 15px;
+  }
+  
+  .sidebar-footer a:hover {
+    color: #ff7a00; /* Change color on hover */
+  }  
   
   .main-content {
     background-color: #fff;
@@ -69,31 +110,5 @@
     padding: 10px;
     border: none;
     cursor: pointer;
-  }
-
-  .main-container {
-    display: flex;
-    width: 100%;
-    max-width: 1200px;
-    height: 100vh; /* Full screen height */
-  }
-  
-  .calendar-container {
-    flex: 3; /* Takes 3/4 of the available width */
-    padding-right: 20px; /* Adds spacing between the calendar and summary */
-  }
-  
-  .summary-container {
-    flex: 1; /* Takes 1/4 of the available width */
-    border-left: 1px solid #ddd;
-    padding-left: 20px;
-  }
-  
-  .action-buttons {
-    margin-top: 20px;
-  }
-  
-  .action-buttons button {
-    margin-right: 10px;
   }
   
