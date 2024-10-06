@@ -78,7 +78,28 @@ const HR = () => {
 
     fetchTableData();
   }, []);
+  const exportCSV = () => {
+    const csvRows = [];
+    const headers = Object.keys(tableData[0]);
+    csvRows.push(headers.join(",")); // Add headers to CSV
 
+    // Loop through each row of data
+    tableData.forEach(row => {
+      const values = headers.map(header => `"${row[header]}"`);
+      csvRows.push(values.join(","));
+    });
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'exported_data.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
   // Render the page
   return (
     <>
@@ -102,7 +123,7 @@ const HR = () => {
                       },
                     ]}
                     width={400}
-                    height={200}
+                    height={300}
                   />
                 </div>
   
@@ -111,8 +132,8 @@ const HR = () => {
                   <CustomBarChart
                     xLabels={xLabels} // Pass xLabels as prop for BarChart
                     seriesData={barChartData} // Use the correct state for BarChart
-                    width={400}
-                    height={200}
+                    width={600}
+                    height={300}
                   />
                 </div>
               </>
@@ -120,7 +141,14 @@ const HR = () => {
               <p>Loading charts...</p>
             )}
           </div>
-  
+             {/* Export Button */}
+          <div className="flex justify-center mt-4">
+            <button 
+              onClick={exportCSV} 
+              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+              Export Data to CSV
+            </button>
+          </div>
           {/* Table */}
           <div className="justify-center mt-4">
             <HrTable rows={tableData} />

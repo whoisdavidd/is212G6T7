@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { BarChart } from '@mui/x-charts/BarChart';
 
-const CustomBarChart = ({ xLabels, seriesData, width = 500, height = 300 }) => {
+const CustomBarChart = ({ xLabels, seriesData, width = 600, height = 300 }) => {
   return (
     <BarChart
       xAxis={[{ scaleType: 'band', data: xLabels }]}  // Labels for the x-axis
