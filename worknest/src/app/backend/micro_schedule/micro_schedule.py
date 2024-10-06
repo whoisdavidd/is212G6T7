@@ -78,5 +78,11 @@ def update_schedule():
 def get_all_schedules():
     schedules = Schedule.query.all()
     return jsonify([schedule.to_dict() for schedule in schedules])
+@app.route('/schedule/<int:staff_id>', methods=['GET'])
+def get_schedule(staff_id):
+    schedule = Schedule.query.filter_by(staff_id=staff_id).first()
+    if schedule:
+        return jsonify(schedule.to_dict())
+    return jsonify({"date": None})  # Return a default response if no schedule is found
 if __name__ == '__main__':
     app.run(port=5004, debug=True)

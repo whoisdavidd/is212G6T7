@@ -1,3 +1,4 @@
+from collections import defaultdict
 import datetime
 from flask import Flask, Request, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -65,7 +66,7 @@ def update_profile_location():
                 profile.location = 'WFH'
                 db.session.commit()
 
-@app.route("/mangers/<int:staff_id>", methods=['GET'])
+@app.route("/managers/<int:staff_id>", methods=['GET'])
 def getManagers(staff_id):
     employee = Profile.query.filter_by(staff_id=staff_id).first()
     manager = employee.query.filter_by(staff_id=employee.id).all() #manager name
@@ -112,32 +113,66 @@ def authentication():
             "message": "Employee not found."
         }
     ), 404
+    
+@app.route("/piechart", methods=['GET'])
+def get_piechart_data():
+    profiles = Profile.query.all()
+    data = {"office": 0, "wfh": 0}  # Initialize office and wfh counts
 
-@app.route('/test', methods=['GET'])
-def test_route():
-    try:
-        profiles = Profile.query.all()  # Fetch all profiles from the database
-        if not profiles:
-            return jsonify({
-                "code": 404,
-                "message": "No profiles found."
-            }), 404
-        
-        employees = [profile.to_dict() for profile in profiles]  # Convert each profile to a dictionary
+    for profile in profiles:
+        if profile.location == "OFFICE":
+            data["office"] += 1
+        else:
+            data["wfh"] += 1
 
-        data = {
-            "code": 200,
-            "data": {
-                "employees": employees  # List of employees
-            }
-        }
-        return jsonify(data), 200
-    except Exception as e:
-        print(f"Error fetching profiles: {str(e)}")  # Print the error message for debugging
-        return jsonify({
-            "code": 500,
-            "message": "An internal server error occurred."  # Error message
-        }), 500
+    piechart_data = [
+        {"label": "Office", "value": data["office"]},
+        {"label": "WFH", "value": data["wfh"]}
+    ]
+
+    return jsonify(piechart_data)
+
+@app.route("/departments", methods=['GET'])
+def get_departments():
+    profiles = Profile.query.all()
+    # Create a dictionary to ensure unique departments, with the first profile's staff_id, staff_name, and location
+    department_list = []
+    
+    for profile in profiles:
+        department_list.append({
+            "staff_id": profile.staff_id,
+            "department": profile.department,
+            "staff_name": f"{profile.staff_fname} {profile.staff_lname}",
+            "location": profile.location
+        })
+
+    return jsonify(department_list)
+@app.route("/barchart", methods=['GET'])
+def get_barchart_data():
+    profiles = Profile.query.all()
+
+    # Dictionary to store data by department
+    data = defaultdict(lambda: {"WFH": 0, "OFFICE": 0})
+
+    # Loop through profiles and count employees based on location
+    for profile in profiles:
+        if profile.location == 'WFH':
+            data[profile.department]['WFH'] += 1
+        elif profile.location == 'OFFICE':
+            data[profile.department]['OFFICE'] += 1
+
+    # Convert to list format for easy use in frontend charts
+    departments = list(data.keys())
+    wfh_data = [data[dept]['WFH'] for dept in departments]
+    office_data = [data[dept]['OFFICE'] for dept in departments]
+
+    return jsonify({
+        "xLabels": departments,  # List of departments for x-axis
+        "seriesData": [
+            {"label": "WFH", "data": wfh_data},  # WFH counts for each department
+            {"label": "OFFICE", "data": office_data},  # Office counts for each department
+        ]
+    })
 
 
 if __name__ == '__main__':
