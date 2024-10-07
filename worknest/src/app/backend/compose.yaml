@@ -88,8 +88,3 @@ services:
       - worknest_default
     env_file:
       - .env
-=======
-
-volumes:
-  db_data:
-
