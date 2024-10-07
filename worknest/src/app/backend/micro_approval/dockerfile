@@ -12,6 +12,8 @@ COPY requirements.txt ./
 
 # Install Python dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+# Install pytest
+RUN pip install pytest
 
 # Copy the current directory contents into the container
 COPY . .
