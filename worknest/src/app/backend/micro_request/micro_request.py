@@ -11,6 +11,7 @@ load_dotenv()
 db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey' 
 
 CORS(app)
 
@@ -158,13 +159,21 @@ def withdraw_request(staff_id):
     }
 
     try:
+        # Sending request to Schedule microservice
         response = requests.post(schedule_update_url, json=profile_update_data)
+        
         if response.status_code != 200:
-            # Log the error or handle it as needed
-            return jsonify({'message': 'Request withdrawn, but failed to update schedule'}), 500
+            # Handle non-200 response codes
+            return jsonify({
+                'message': 'Request withdrawn, but failed to update schedule',
+                'schedule_service_error': response.text
+            }), 500
     except requests.exceptions.RequestException as e:
-        # Log the exception
-        return jsonify({'message': 'Request withdrawn, but an error occurred while updating schedule', 'error': str(e)}), 500
+        # Handle request exceptions (e.g., connection error, timeout)
+        return jsonify({
+            'message': 'Request withdrawn, but an error occurred while updating schedule',
+            'error': str(e)
+        }), 500
 
     return jsonify({'message': 'Request withdrawn successfully'}), 200
 @app.route('/request/cancel/<int:staff_id>', methods=['PUT'])
