@@ -1,3 +1,14 @@
+-- TO RESET DB  
+-- DROP TABLE if exists employee CASCADE;
+-- DROP TABLE if exists event CASCADE;
+-- DROP TABLE if exists profile CASCADE;
+-- DROP TABLE if exists request CASCADE;
+-- DROP TABLE if exists schedule CASCADE;
+-- DROP SCHEMA IF EXISTS worknest;
+
+-- CREATE SCHEMA worknest;
+-- SET search_path TO worknest, public;
+
 CREATE TABLE event (
     id SERIAL PRIMARY KEY,
     department VARCHAR(50) NOT NULL,
@@ -596,7 +607,8 @@ CREATE TABLE request (
     reporting_manager_id INT,
     reporting_manager_name VARCHAR(50),
     day_id SERIAL NOT NULL,
-    recurring_days INT[]
+    recurring_days INT[],
+    approver_comment VARCHAR(50)
 );
 
 CREATE table schedule(

@@ -1,4 +1,12 @@
 
+networks:
+  worknest_default:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
+  db_data:
+
 services:
   # Microservices
   micro_event:
@@ -37,8 +45,49 @@ services:
     env_file:
       - .env
 
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    env_file:
+      - .env
+    networks:
+    - worknest_default
+
+  micro_notification:
+    build:
+      context: ./micro_notification  # Updated to micro_notification folder
+    command: python notification.py
+    depends_on:
+      - rabbitmq
+    restart: always
+    networks:
+      - worknest_default
+    env_file:
+      - .env
+
+  micro_approval:
+    build:
+      context: ./micro_approval  # Updated to micro_approval folder
+    command: python approval_service.py
+    depends_on:
+      - rabbitmq
+    environment:
+      - FLASK_ENV=development
+    ports:
+      - "5006:5000"  # Exposing approval service on port 5005
+    restart: always
+    networks:
+      - worknest_default
+    env_file:
+      - .env
 
 
-
-volumes:
-  db_data:

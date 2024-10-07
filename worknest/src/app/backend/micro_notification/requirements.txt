@@ -1,0 +1,8 @@
+# python dependencies
+Flask==3.0.1
+pika
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+Flask-Cors==4.0.0
+
