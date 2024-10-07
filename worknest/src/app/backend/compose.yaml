@@ -1,4 +1,3 @@
-version: '3.8'
 
 networks:
   worknest_default:
@@ -60,6 +59,8 @@ services:
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
     env_file:
       - .env
+    networks:
+    - worknest_default
 
   micro_notification:
     build:
@@ -88,8 +89,5 @@ services:
       - worknest_default
     env_file:
       - .env
-=======
 
-volumes:
-  db_data:
 
