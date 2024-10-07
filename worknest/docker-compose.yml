@@ -20,7 +20,7 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     ports:
-      - "5005:5005"  # Exposing approval service on port 5005
+      - "5005:5005"  # Exposing approval service on port 5006
     networks:
       - worknest_default
     restart: always
