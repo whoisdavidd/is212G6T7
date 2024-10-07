@@ -11,11 +11,15 @@ load_dotenv()
 db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey' 
 
 CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Add a secret key for session management
+app.secret_key = 'supersecretkey'
 
 db =SQLAlchemy(app)
 
@@ -70,10 +74,25 @@ def get_all_requests():
 @app.route('/add_request/<int:staff_id>', methods=['POST'])
 def add_request(staff_id):
     data = request.get_json()
-    new_request = Request(staff_id=staff_id, department=data['department'], start_date=data['start_date'], reason=data['reason'], duration=data['duration'], status=data['status'], reporting_manager_id=data['reporting_manager_id'], reporting_manager_name=data['reporting_manager_name'])
+
+    # Generate request_id (you can modify this logic as per your database schema)
+    new_request = Request(
+        request_id=None,  # Use `None` if it's auto-incremented by the database
+        staff_id=staff_id,
+        department=data['department'],
+        start_date=data['start_date'],
+        reason=data['reason'],
+        duration=data['duration'],
+        status=data['status'],
+        reporting_manager_id=data['reporting_manager_id'],
+        reporting_manager_name=data['reporting_manager_name'],
+        day_id=data.get('day_id', 0),  # Use 0 or other default if not provided
+        recurring_days=data.get('recurring_days', 0)  # Use 0 as default
+    )
+
     db.session.add(new_request)
     db.session.commit()
-    return jsonify(new_request.to_dict())
+    return jsonify(new_request.to_dict()), 200
 
 def approve_request(request_id):
     # Approve the request (you may already have this logic in place)
@@ -123,10 +142,14 @@ def withdraw_request(staff_id):
 
     # Proceed to withdraw the request
     request_obj.status = 'Withdrawn'
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Error withdrawing the request', 'error': str(e)}), 500
 
     # Communicate with the Schedule microservice to revert the schedule
-    schedule_update_url = "http://localhost:5004/schedule/update"  # Update if different
+    schedule_update_url = "http://localhost:5004/schedule/update"  # Update this if needed
 
     profile_update_data = {
         'staff_id': request_obj.staff_id,
@@ -136,16 +159,23 @@ def withdraw_request(staff_id):
     }
 
     try:
+        # Sending request to Schedule microservice
         response = requests.post(schedule_update_url, json=profile_update_data)
+        
         if response.status_code != 200:
-            # Log the error or handle it as needed
-            return jsonify({'message': 'Request withdrawn, but failed to update schedule'}), 500
-    except Exception as e:
-        # Log the exception
-        return jsonify({'message': 'Request withdrawn, but an error occurred while updating schedule', 'error': str(e)}), 500
+            # Handle non-200 response codes
+            return jsonify({
+                'message': 'Request withdrawn, but failed to update schedule',
+                'schedule_service_error': response.text
+            }), 500
+    except requests.exceptions.RequestException as e:
+        # Handle request exceptions (e.g., connection error, timeout)
+        return jsonify({
+            'message': 'Request withdrawn, but an error occurred while updating schedule',
+            'error': str(e)
+        }), 500
 
     return jsonify({'message': 'Request withdrawn successfully'}), 200
-
 @app.route('/request/cancel/<int:staff_id>', methods=['PUT'])
 def cancel_request(staff_id):
     # Check if user is logged in
