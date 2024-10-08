@@ -362,7 +362,7 @@ export default function FullFeaturedCrudGrid() {
                 Cancel
               </Button>
             )}
-            {status === 'approved' && (
+            {status === 'Approved' && (
               <Button
                 variant="contained"
                 color="primary"
