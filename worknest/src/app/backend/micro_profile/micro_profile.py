@@ -69,8 +69,9 @@ def update_profile_location():
 @app.route("/managers/<int:staff_id>", methods=['GET'])
 def getManagers(staff_id):
     employee = Profile.query.filter_by(staff_id=staff_id).first()
-    manager = employee.query.filter_by(staff_id=employee.id).all() #manager name
+    manager = Profile.query.filter_by(staff_id=employee.reporting_manager_id).first() #manager name
     if manager:
+        
         return jsonify(
            {
             "reporting_manager_name": f"{manager.staff_fname} {manager.staff_lname}",
