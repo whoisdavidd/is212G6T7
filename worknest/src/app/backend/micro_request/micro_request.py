@@ -10,6 +10,7 @@ load_dotenv()
 db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
+app.secret_key = 'supersecretkey' 
 
 CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  # Replace with your frontend's URL
 
@@ -89,7 +90,7 @@ def add_request(staff_id):
     new_request = RequestModel(staff_id=staff_id, department=data['department'], start_date=data['start_date'], reason=data['reason'], duration=data['duration'], status=data['status'], reporting_manager_id=data['reporting_manager_id'], reporting_manager_name=data['reporting_manager_name'])
     db.session.add(new_request)
     db.session.commit()
-    return jsonify(new_request.to_dict())
+    return jsonify(new_request.to_dict()), 200
 
 def approve_request(request_id):
     # Approve the request (you may already have this logic in place)

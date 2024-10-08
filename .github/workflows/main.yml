@@ -55,6 +55,14 @@ jobs:
     - name: Build Docker image
       run: |
         docker compose  --env-file worknest/src/app/backend/.env -f worknest/src/app/backend/compose.yaml up -d
+         # Run tests in microservices
+        docker exec backend-micro_profile-1  pytest
+        docker exec backend-micro_event-1  pytest
+        docker exec backend-micro_request-1  pytest
+        docker exec backend-micro_schedule-1  pytest
+      
+        
+
 
 
 
