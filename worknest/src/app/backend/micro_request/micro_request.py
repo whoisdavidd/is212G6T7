@@ -22,7 +22,7 @@ db =SQLAlchemy(app)
 
 class Request(db.Model):
     __tablename__ = "request"
-    request_id = db.Column(db.Integer, primary_key=True, nullable=False)
+    request_id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     staff_id = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
     start_date = db.Column(db.String(50), nullable=False)
@@ -70,16 +70,25 @@ def get_all_requests():
 @app.route('/add_request/<int:staff_id>', methods=['POST'])
 def add_request(staff_id):
     data = request.get_json()
-    new_request = Request(staff_id=staff_id, department=data['department'], start_date=data['start_date'], reason=data['reason'], duration=data['duration'], status=data['status'], reporting_manager_id=data['reporting_manager_id'], reporting_manager_name=data['reporting_manager_name'])
+    new_request = Request(
+        staff_id=staff_id,
+        department=data['department'],
+        start_date=data['start_date'],
+        reason=data['reason'],
+        duration=data['duration'],
+        status=data['status'],
+        reporting_manager_id=data['reporting_manager_id'],
+        reporting_manager_name=data['reporting_manager_name']
+    )
     db.session.add(new_request)
     db.session.commit()
-    return jsonify(new_request.to_dict())
+    return jsonify(new_request.to_dict()), 201
 
 def approve_request(request_id):
     # Approve the request (you may already have this logic in place)
     request = Request.query.get(request_id)
     if request:
-        request.status = 'approved'
+        request.status = 'Approved'
         db.session.commit()
 
         # Notify the Schedule microservice

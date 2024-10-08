@@ -17,6 +17,9 @@ function Staff() {
         <Stack sx={{ width: '100%', height: '400px', overflow: 'auto' }}> {/* Fixed height for calendar */}
           <StaffCalendar />
         </Stack>
+        <Stack>
+          <WfhButton/>
+        </Stack>
         <Stack sx={{ width: '100%' }}> {/* Schedule takes full width */}
           <StaffSchedule />
         </Stack>
