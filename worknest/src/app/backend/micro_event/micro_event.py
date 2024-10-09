@@ -1,9 +1,9 @@
+from datetime import datetime
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_cors import CORS
-
 
 load_dotenv()
 
@@ -28,13 +28,13 @@ class event(db.Model):
     def __init__(self, department, event_name, event_date):
         self.department = department
         self.event_name = event_name
-        self.event_date = event_date
+        self.event_date = datetime.strptime(event_date, '%Y-%m-%d').date()
     def to_dict(self):
         return {
             'id': self.id,
             'department': self.department,
             'event_name': self.event_name,
-            'event_date': self.event_date
+            'event_date': self.event_date.strftime('%d-%m-%Y') 
         }
 
 #Route to get all events

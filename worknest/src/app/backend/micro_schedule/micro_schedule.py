@@ -4,7 +4,6 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
- 
 
 load_dotenv()
 
@@ -40,6 +39,13 @@ class Schedule(db.Model):
             'department': self.department,
             'status': self.status
         }
+    
+
+
+
+# ---------------------------------- Update Schedule ----------------------------------
+
+@app.route('/schedule/update', methods=['POST'])
 def update_schedule():
     try:
         # Get the data from the Request microservice (staff_id, department, start_date, status)
@@ -74,9 +80,25 @@ def update_schedule():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+
+# ---------------------------------- Get All Schedules ----------------------------------
+
 @app.route('/schedule', methods=['GET'])
 def get_all_schedules():
     schedules = Schedule.query.all()
     return jsonify([schedule.to_dict() for schedule in schedules])
+@app.route('/schedule/<int:staff_id>', methods=['GET'])
+def get_schedule(staff_id):
+    schedule = Schedule.query.filter_by(staff_id=staff_id).first()
+    if schedule:
+        return jsonify(schedule.to_dict())
+    return jsonify({"date": None})  # Return a default response if no schedule is found
+
+
+
+# ---------------------------------- Main ----------------------------------
+
 if __name__ == '__main__':
     app.run(port=5004, debug=True)

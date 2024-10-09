@@ -3,5 +3,10 @@
         "./worknest/src",
         "./worknest/src/app",
         "./worknest/src/app/backend"
-    ]
+    ],
+    "python.testing.pytestArgs": [
+        "worknest"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }
