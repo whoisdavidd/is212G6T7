@@ -41,8 +41,7 @@ class RequestModel(db.Model):
     day_id = db.Column(db.Integer)
     recurring_days = db.Column(db.Integer)
     
-    def __init__(self, request_id, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, day_id, recurring_days):
-        self.request_id = request_id
+    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, day_id, recurring_days):
         self.staff_id = staff_id
         self.department = department
         self.start_date = start_date
@@ -87,7 +86,7 @@ def get_all_requests():
 @app.route('/add_request/<int:staff_id>', methods=['POST'])
 def add_request(staff_id):
     data = request.get_json()
-    new_request = Request(
+    new_request = RequestModel(
         staff_id=staff_id,
         department=data['department'],
         start_date=data['start_date'],
@@ -95,11 +94,14 @@ def add_request(staff_id):
         duration=data['duration'],
         status=data['status'],
         reporting_manager_id=data['reporting_manager_id'],
-        reporting_manager_name=data['reporting_manager_name']
+        reporting_manager_name=data['reporting_manager_name'],
+        day_id=data.get('day_id'),  # Use `get` to avoid KeyError if missing
+        recurring_days=data.get('recurring_days')  # Use `get` for optional fields
     )
     db.session.add(new_request)
     db.session.commit()
     return jsonify(new_request.to_dict()), 201
+
 
 def approve_request(request_id):
     # Approve the request (you may already have this logic in place)

@@ -3,6 +3,7 @@ import React from 'react';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import StaffCalendar from '../components/StaffCalendar';
 import StaffSchedule from '../components/StaffSchedule';
+import WfhButton from '../components/WfhButton';
 
 import Stack from '@mui/material/Stack';
 
@@ -16,7 +17,7 @@ function Staff() {
         <Stack sx={{ width: '100%', height: '400px', overflow: 'auto' }}> {/* Fixed height for calendar */}
           <StaffCalendar />
         </Stack>
-        <Stack>
+        <Stack alignItems="flex-start" sx={{ width: '100%' }}>
           <WfhButton/>
         </Stack>
         <Stack sx={{ width: '100%' }}> {/* Schedule takes full width */}
