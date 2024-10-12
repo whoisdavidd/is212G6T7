@@ -4,6 +4,7 @@
 -- DROP TABLE if exists profile CASCADE;
 -- DROP TABLE if exists request CASCADE;
 -- DROP TABLE if exists schedule CASCADE;
+-- DROP TABLE if exists audit_log CASCADE; 
 -- DROP SCHEMA IF EXISTS worknest;
 
 -- CREATE SCHEMA worknest;
@@ -606,6 +607,8 @@ CREATE TABLE request (
     status VARCHAR(50) NOT NULL,
     reporting_manager_id INT,
     reporting_manager_name VARCHAR(50),
+    reporting_manager_email VARCHAR(50),  -- Added field for approver email -- easier to retrieve for sending of emails
+    requester_email VARCHAR(50),          -- Added field for requester email
     day_id SERIAL NOT NULL,
     recurring_days INT[],
     approver_comment VARCHAR(50)
@@ -616,4 +619,16 @@ CREATE table schedule(
     date DATE NOT NULL,
     department VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE audit_log (
+    log_id SERIAL PRIMARY KEY,
+    request_id INT NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    approver_id INT NOT NULL,
+    approver_email VARCHAR(50) NOT NULL,
+    action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    start_date DATE NOT NULL, -- The specific date being approved or rejected
+    duration VARCHAR(50) NOT NULL
+
 );
