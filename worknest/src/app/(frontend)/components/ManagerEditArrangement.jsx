@@ -9,17 +9,13 @@ import {
     TableRow,
     Paper,
     Button,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
     Snackbar,
     Alert,
-    TextField
+    TableSortLabel,
 } from '@mui/material';
-// Import CSS for styling if needed
 import '../../styles/EditArrangement.css';
 import FilterForm from './FilterForm';
+import EditForm from './ManagerEditForm'; // Import the new EditForm component
 
 const EditArrangement = () => {
     const [arrangements, setArrangements] = useState([
@@ -56,16 +52,25 @@ const EditArrangement = () => {
     const [selectedArrangement, setSelectedArrangement] = useState(null);
     const [newStatus, setNewStatus] = useState('');
     const [notification, setNotification] = useState({ open: false, message: '', severity: '' });
-
     // Filter states
     const [filters, setFilters] = useState({
         staffName: '',
-        status: ''
+        status: '',
+        from: '',
+        to: '',
     });
+
+    // Modal open state
+    const [openDialog, setOpenDialog] = useState(false);
 
     const handleSelectArrangement = (arrangement) => {
         setSelectedArrangement(arrangement);
         setNewStatus(arrangement.status);
+        setOpenDialog(true); // Open the dialog when "Edit" is clicked
+    };
+
+    const handleCloseDialog = () => {
+        setOpenDialog(false);
     };
 
     const handleChangeStatus = () => {
@@ -82,6 +87,7 @@ const EditArrangement = () => {
             severity: 'success',
         });
 
+        setOpenDialog(false); // Close the dialog after the status is changed
         setSelectedArrangement(null);
         setNewStatus('');
     };
@@ -89,6 +95,20 @@ const EditArrangement = () => {
     const handleCloseNotification = () => {
         setNotification({ ...notification, open: false });
     };
+
+    // Sorting state and logic
+    const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
+
+    const handleSort = (column) => {
+        const isAsc = sortConfig.key === column && sortConfig.direction === 'asc';
+        setSortConfig({ key: column, direction: isAsc ? 'desc' : 'asc' });
+    };
+
+    const sortedArrangements = [...arrangements].sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
 
     // Filtering logic
     const filteredArrangements = arrangements.filter((arrangement) => {
@@ -145,6 +165,47 @@ const EditArrangement = () => {
         },
     ];
 
+    // Conditional styling for status
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'Approved':
+                return {
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)', // Light green background
+                    color: 'green',
+                    padding: '6px 12px',
+                    width: '100%',
+                    borderRadius: '20px',
+                    display: 'inline-block',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                };
+            case 'Pending':
+                return {
+                    backgroundColor: 'rgba(255, 165, 0, 0.1)', // Light orange background
+                    color: 'orange',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    width: '100%',
+                    display: 'inline-block',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                };
+            case 'Rejected':
+                return {
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)', // Light red background
+                    color: 'red',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    width: '100%',
+                    display: 'inline-block',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                };
+            default:
+                return {};
+        }
+    };
+
     return (
         <div className="edit-arrangement-container">
             {/* Filter Form */}
@@ -168,22 +229,65 @@ const EditArrangement = () => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell><strong>Arrangement ID</strong></TableCell>
-                            <TableCell><strong>Staff Name</strong></TableCell>
-                            <TableCell><strong>Status</strong></TableCell>
-                            <TableCell><strong>From</strong></TableCell>
-                            <TableCell><strong>To</strong></TableCell>
+                            <TableCell>
+                                <TableSortLabel
+                                    active={sortConfig.key === 'id'}
+                                    direction={sortConfig.direction}
+                                    onClick={() => handleSort('id')}
+                                >
+                                    <strong>Arrangement ID</strong>
+                                </TableSortLabel>
+                            </TableCell>
+                            <TableCell>
+                                <TableSortLabel
+                                    active={sortConfig.key === 'staffName'}
+                                    direction={sortConfig.direction}
+                                    onClick={() => handleSort('staffName')}
+                                >
+                                    <strong>Staff Name</strong>
+                                </TableSortLabel>
+                            </TableCell>
+                            <TableCell>
+                                <TableSortLabel
+                                    active={sortConfig.key === 'from'}
+                                    direction={sortConfig.direction}
+                                    onClick={() => handleSort('from')}
+                                >
+                                    <strong>From</strong>
+                                </TableSortLabel>
+                            </TableCell>
+                            <TableCell>
+                                <TableSortLabel
+                                    active={sortConfig.key === 'to'}
+                                    direction={sortConfig.direction}
+                                    onClick={() => handleSort('to')}
+                                >
+                                    <strong>To</strong>
+                                </TableSortLabel>
+                            </TableCell>
+                            <TableCell>
+                                <TableSortLabel
+                                    active={sortConfig.key === 'status'}
+                                    direction={sortConfig.direction}
+                                    onClick={() => handleSort('status')}
+                                >
+                                    <strong>Status</strong>
+                                </TableSortLabel>
+                            </TableCell>
                             <TableCell><strong>Actions</strong></TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredArrangements.map((arrangement) => (
+                        {sortedArrangements.map((arrangement) => (
                             <TableRow key={arrangement.id}>
                                 <TableCell>{arrangement.id}</TableCell>
                                 <TableCell>{arrangement.staffName}</TableCell>
-                                <TableCell>{arrangement.status}</TableCell>
                                 <TableCell>{arrangement.from}</TableCell>
                                 <TableCell>{arrangement.to}</TableCell>
+                                <TableCell>
+                                    <div style={getStatusStyle(arrangement.status)}>
+                                        {arrangement.status}
+                                    </div></TableCell>
                                 <TableCell>
                                     <Button onClick={() => handleSelectArrangement(arrangement)}>Edit</Button>
                                 </TableCell>
@@ -193,26 +297,16 @@ const EditArrangement = () => {
                 </Table>
             </TableContainer>
 
+            {/* Edit Form Modal */}
             {selectedArrangement && (
-                <div className="edit-status-section">
-                    <h2>Edit Status for {selectedArrangement.staffName}</h2>
-                    <FormControl fullWidth variant="outlined" className="form-control" sx={{ marginTop: '20px' }}>
-                        <InputLabel>Status</InputLabel>
-                        <Select
-                            value={newStatus}
-                            onChange={(e) => setNewStatus(e.target.value)}
-                            label="Status"
-                            className="select-status"
-                        >
-                            <MenuItem value="Approved">Approved</MenuItem>
-                            <MenuItem value="Rejected">Rejected</MenuItem>
-                            <MenuItem value="Pending">Pending</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <Button variant="contained" color="primary" className="change-status-btn" onClick={handleChangeStatus}>
-                        Change Status
-                    </Button>
-                </div>
+                <EditForm
+                    open={openDialog}
+                    onClose={handleCloseDialog}
+                    arrangement={selectedArrangement}
+                    newStatus={newStatus}
+                    setNewStatus={setNewStatus}
+                    handleChangeStatus={handleChangeStatus}
+                />
             )}
 
             <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification}>
