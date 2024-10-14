@@ -81,6 +81,37 @@ def get_all_requests():
 
 
 
+# ---------------------------------- Get Manager's Team Requests ----------------------------------
+@app.route('/manager_requests/<int:manager_id>', methods=['GET'])
+def get_manager_requests(manager_id):
+    try:
+        # Define the Profile microservice URL
+        profile_service_url = f"http://localhost:5002/managers/{manager_id}/team"
+
+        # Fetch team members from Profile microservice
+        response = requests.get(profile_service_url)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch team members from Profile service"}), response.status_code
+
+        team_members = response.json()
+        team_staff_ids = [member['staff_id'] for member in team_members]
+
+        if not team_staff_ids:
+            return jsonify({"message": "No team members found for this manager."}), 200
+
+        # Retrieve requests made by team members
+        team_requests = RequestModel.query.filter(RequestModel.staff_id.in_(team_staff_ids)).all()
+        print("TEAM REQUESTS", team_requests)
+        team_requests_data = [request.to_dict() for request in team_requests]
+        print("TEAM REQUESTS DATA", team_requests_data)
+        return jsonify(team_requests_data), 200
+
+    except requests.exceptions.RequestException as req_err:
+        return jsonify({"error": f"Error connecting to Profile service: {str(req_err)}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 # ---------------------------------- Add Request ----------------------------------
 

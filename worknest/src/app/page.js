@@ -28,7 +28,7 @@ export default function HomePage() {
         sessionStorage.setItem("role", data.data.role);
         sessionStorage.setItem("staff_id", data.data.staff_id);
         sessionStorage.setItem("department", data.data.department);
-        if(data.data.role === "1"){
+        if(data.data.role === 1){
           window.location.href = "/Manager";  // Redirect to HR page
         }else if (data.data.role == 2) {
           window.location.href = "/Staff";  // Redirect to Staff page

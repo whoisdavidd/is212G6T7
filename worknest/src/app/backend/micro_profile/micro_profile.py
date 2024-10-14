@@ -85,6 +85,18 @@ def getManagers(staff_id):
         }
     ), 404
 
+# ---------------------------------- Get Manager's Team Members ----------------------------------
+@app.route('/managers/<int:manager_id>/team', methods=['GET'])
+def get_manager_team(manager_id):
+    try:
+        team_members = Profile.query.filter_by(reporting_manager_id=manager_id).all()
+        team_members_data = [member.to_dict() for member in team_members]
+        return jsonify(team_members_data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+    
+
 @app.route("/profile", methods=['GET'])
 def get_all_profiles():
     profiles = Profile.query.all()
