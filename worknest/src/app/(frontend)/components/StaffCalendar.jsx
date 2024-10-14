@@ -216,6 +216,8 @@ export default function StaffCalendar() {
           .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled') // Filter out withdrawn and cancelled
           .map(request => {
             const date = new Date(request.start_date); // Parse the date
+            console.log(date);
+            
             const formattedDate = date.toISOString().split('T')[0]; // Format to 'YYYY-MM-DD'
             return {
               id: String(request.staff_id),
