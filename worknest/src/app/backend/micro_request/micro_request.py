@@ -13,7 +13,7 @@ db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 app = Flask(__name__)
 app.secret_key = 'supersecretkey' 
 
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  # Replace with your frontend's URL
+CORS(app) # Replace with your frontend's URL
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -81,7 +81,23 @@ def get_all_requests():
     return jsonify([request.to_dict() for request in requests])
 
 
+# ---------------------------------- Get Requests for Specific Staff ----------------------------------
 
+@app.route('/request/staff/<int:staff_id>', methods=['GET'])
+def get_staff_requests(staff_id):
+    staff_requests = RequestModel.query.filter_by(staff_id=staff_id).all()
+    if not staff_requests:
+        return jsonify({'message': 'No requests found for this staff member.'}), 404
+    return jsonify([request.to_dict() for request in staff_requests]), 200
+
+
+# ---------------------------------- Get specific Requests by request_id ----------------------------------
+@app.route('/request/<int:request_id>', methods=['GET'])
+def get_request(request_id):
+    request = RequestModel.query.get(request_id)
+    if not request:
+        return jsonify({'message': 'Request not found'}), 404
+    return jsonify(request.to_dict()), 200
 
 # ---------------------------------- Add Request ----------------------------------
 
@@ -275,6 +291,7 @@ def cancel_request(request_id):
 # ---------------------------------- Update Requests ----------------------------------
 @app.route('/request/update/<int:request_id>', methods=['PUT'])
 def update_request(request_id):
+    print(f"Received update request for request_id: {request_id}")
     # Retrieve custom headers
     role = request.headers.get('X-Role')
     client_staff_id = request.headers.get('X-Staff-ID')
@@ -302,7 +319,6 @@ def update_request(request_id):
         return jsonify({'message': 'Unauthorized to update this request.'}), 403
     elif role == 1 and request_obj.department != client_department:
         return jsonify({'message': 'Unauthorized to update request from different department.'}), 403
-
     # Get data from request body
     data = request.get_json()
 
@@ -311,39 +327,48 @@ def update_request(request_id):
         request_obj.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
         request_obj.duration = data['duration']
         request_obj.reason = data['reason']
+        
+        # Update status if it was previously approved
+        if request_obj.status == 'Approved' and data.get('status') == 'Pending':
+            request_obj.status = 'Pending'
 
         db.session.commit()
-    except KeyError as e:
-        return jsonify({'message': f'Missing required field: {str(e)}'}), 400
-    except ValueError as e:
-        return jsonify({'message': f'Invalid data format: {str(e)}'}), 400
-
-    # Communicate with the Schedule microservice to update the schedule
-    schedule_update_url = "http://localhost:5004/schedule/update"
-    schedule_update_data = {
-        'staff_id': request_obj.staff_id,
-        'date': request_obj.start_date.isoformat(),
-        'department': request_obj.department,
-        'status': request_obj.status,
-        'duration': request_obj.duration
-    }
-
-    try:
-        response = requests.post(schedule_update_url, json=schedule_update_data)
-        if response.status_code != 200:
-            print(f"Schedule microservice responded with status code {response.status_code}")
-            return jsonify({'message': 'Request updated, but failed to update schedule.'}), 500
-    except Exception as e:
-        print(f"Exception occurred while updating schedule: {e}")
+        print(f"Request {request_id} updated successfully")
         return jsonify({
-            'message': 'Request updated, but an error occurred while updating schedule.',
-            'error': str(e)
-        }), 500
+            'message': 'Request updated successfully.',
+            'request': request_obj.to_dict()
+        }), 200
+    except Exception as e:
+        print(f"Error updating request {request_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'message': f'Error updating request: {str(e)}'}), 500
 
-    return jsonify({
-        'message': 'Request updated successfully.',
-        'request': request_obj.to_dict()
-    }), 200
+    # # Communicate with the Schedule microservice to update the schedule
+    # schedule_update_url = "http://localhost:5004/schedule/update"
+    # schedule_update_data = {
+    #     'staff_id': request_obj.staff_id,
+    #     'date': request_obj.start_date.isoformat(),
+    #     'department': request_obj.department,
+    #     'status': request_obj.status,
+    #     'duration': request_obj.duration
+    # }
+
+    # try:
+    #     response = requests.post(schedule_update_url, json=schedule_update_data)
+    #     if response.status_code != 200:
+    #         print(f"Schedule microservice responded with status code {response.status_code}")
+    #         return jsonify({'message': 'Request updated, but failed to update schedule.'}), 500
+    # except Exception as e:
+    #     print(f"Exception occurred while updating schedule: {e}")
+    #     return jsonify({
+    #         'message': 'Request updated, but an error occurred while updating schedule.',
+    #         'error': str(e)
+    #     }), 500
+
+    # return jsonify({
+    #     'message': 'Request updated successfully.',
+    #     'request': request_obj.to_dict()
+    # }), 200
 
 
 # ---------------------------------- Main ----------------------------------

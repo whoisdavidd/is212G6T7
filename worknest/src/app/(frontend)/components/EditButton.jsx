@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 
 // Function to fetch managers
 const fetchManagers = async () => {
-  const staff_id = 210030;
+  const staff_id = sessionStorage.getItem("staff_id");
 
   if (!staff_id) {
     console.error("No staff_id found in session storage");
@@ -41,15 +41,15 @@ const fetchManagers = async () => {
   }
 };
 
-const updateWFHRequest = async (requestId, startDate, duration, reason, manager) => {
-  const staff_id = 210030;
-  const employeeDepartment = "IT";
+const updateWFHRequest = async (requestId, startDate, duration, reason, manager, currentStatus) => {
+  const staff_id = sessionStorage.getItem("staff_id");
+  const employeeDepartment = sessionStorage.getItem("department");
   try {
     const response = await fetch(`http://localhost:5003/request/update/${requestId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-Role": 2,
+        "X-Role": sessionStorage.getItem("role"),
         "X-Staff-ID": staff_id,
         "X-Department": employeeDepartment,
       },
@@ -57,10 +57,12 @@ const updateWFHRequest = async (requestId, startDate, duration, reason, manager)
         start_date: startDate,
         duration: duration,
         reason: reason,
+        status: currentStatus === 'Approved' ? 'Pending' : currentStatus
       }),
     });
 
     const data = await response.json();
+    console.log(data)
 
     if (response.ok) {
       console.log("WFH Request Updated:", data);
@@ -71,35 +73,35 @@ const updateWFHRequest = async (requestId, startDate, duration, reason, manager)
     }
   } catch (error) {
     console.error("Error:", error);
-    throw error;
+    throw new Error(`Failed to update request: ${error.message}`);
   }
 };
 
-export default function EditButton({ requestId, onRequestUpdate }) {
+export default function EditButton({ requestId, onRequestUpdate, currentStatus }) {
   const [open, setOpen] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [duration, setDuration] = useState("");
   const [reason, setReason] = useState("");
   const [managers, setManagers] = useState([]);
   const [selectedManager, setSelectedManager] = useState(null);
+  const [status, setStatus] = useState(currentStatus);
 
   useEffect(() => {
     if (open) {
       fetchManagers().then(setManagers);
-      // Fetch the current request details and set the state
       fetchRequestDetails(requestId);
     }
   }, [open, requestId]);
 
-  const fetchRequestDetails = async (id) => {
+  const fetchRequestDetails = async (requestId) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5003/request/${id}`);
+      const response = await fetch(`http://localhost:5003/request/${requestId}`);
       const data = await response.json();
       if (response.ok) {
         setStartDate(data.start_date);
         setDuration(data.duration);
         setReason(data.reason);
-        // Set the selected manager if it exists in the fetched data
+        setStatus(data.status);
         setSelectedManager(managers.find(m => m.manager_id === data.reporting_manager_id) || null);
       } else {
         console.error("Error fetching request details:", data);
@@ -116,10 +118,20 @@ export default function EditButton({ requestId, onRequestUpdate }) {
 
   const handleSubmit = async () => {
     try {
-      const updatedRequest = await updateWFHRequest(requestId, startDate, duration, reason, selectedManager);
+      const updatedRequest = await updateWFHRequest(requestId, startDate, duration, reason, selectedManager, status);
+      
+      // If the status was 'approved', we've changed it to 'Pending'
+      if (status === 'Approved') {
+        updatedRequest.status = 'Pending';
+        alert("Your request has been edited and resubmitted for approval.");
+      } else {
+        alert("Your request has been updated successfully.");
+      }
+      
       onRequestUpdate(updatedRequest);
       handleClose();
     } catch (error) {
+      console.error("Error in handleSubmit:", error);
       alert("Failed to update request: " + error.message);
     }
   };
@@ -134,6 +146,7 @@ export default function EditButton({ requestId, onRequestUpdate }) {
         <DialogContent>
           <DialogContentText>
             Update the details of your WFH request.
+            {status === 'Approved' && " This will resubmit your request for approval."}
           </DialogContentText>
           <TextField
             margin="dense"

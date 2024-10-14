@@ -7,13 +7,14 @@ import { DataGrid } from '@mui/x-data-grid';
 
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
-  const staff_id = 210030; // Assuming this will be used for future actions
+  const staff_id = sessionStorage.getItem("staff_id"); // Assuming this will be used for future actions
 
   // Fetch event data from the Flask backend
   React.useEffect(() => {
     const fetchEventData = async () => {
+      // const staff_id = sessionStorage.getItem("staff_id");
       try {
-        const response = await fetch(`http://localhost:5003/request`);
+        const response = await fetch(`http://localhost:5003/request/staff/${staff_id}`);
         const data = await response.json();
         console.log("Fetched Data:", data); // Log the fetched data
         const formattedData = data.map((item) => {
@@ -90,17 +91,22 @@ export default function FullFeaturedCrudGrid() {
       headerName: 'Edit',
       width: 150,
       renderCell: (params) => {
-        const { request_id } = params.row;
+        const { request_id, status } = params.row;
 
         return (
           <div>
             {
-              <EditButton requestId={request_id} onRequestUpdate={handleRequestUpdate} />
+              <EditButton 
+                requestId={request_id} 
+                onRequestUpdate={handleRequestUpdate} 
+                currentStatus={status}
+              />
             }
           </div>
         );
       },
     },
+    // Can remove if done, this is for referencing88
     {
       field: "Request ID",
       headerName: "Request ID",
@@ -205,7 +211,7 @@ export default function FullFeaturedCrudGrid() {
 
   // Add this function to handle updates after editing
   const handleRequestUpdate = (updatedRequest) => {
-    setRows(rows.map(row => 
+    setRows(prevRows => prevRows.map(row => 
       row.request_id === updatedRequest.request_id ? updatedRequest : row
     ));
   };
