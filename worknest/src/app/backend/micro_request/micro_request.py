@@ -5,7 +5,7 @@ import os
 from flask_cors import CORS
 import requests
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from flasgger import Swagger
 
 load_dotenv()
@@ -23,7 +23,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Initialize Flasgger
@@ -31,7 +31,7 @@ swagger = Swagger(app)
 
 class RequestModel(db.Model):
     __tablename__ = "request"
-    request_id = db.Column(db.Integer, primary_key=True, nullable=False)
+    request_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_id = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
     start_date = db.Column(db.String(50), nullable=False)
@@ -43,8 +43,7 @@ class RequestModel(db.Model):
     day_id = db.Column(db.Integer)
     recurring_days = db.Column(db.Integer)
     
-    def __init__(self, request_id, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, day_id, recurring_days):
-        self.request_id = request_id
+    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, day_id, recurring_days):
         self.staff_id = staff_id
         self.department = department
         self.start_date = start_date
@@ -112,11 +111,13 @@ def get_all_requests():
       500:
         description: Failed to fetch requests
     """
+    logger.info("[GET] /requests - Received request to fetch all requests.")
     try:
         requests = RequestModel.query.all()
+        logger.info(f"[GET] /requests - Successfully fetched {len(requests)} requests.")
         return jsonify([request.to_dict() for request in requests]), 200
     except Exception as e:
-        logger.error(f"Error fetching requests: {str(e)}")
+        logger.error(f"[GET] /requests - Error fetching requests: {str(e)}")
         return jsonify({'error': 'Failed to fetch requests'}), 500
     
 
@@ -160,16 +161,18 @@ def get_staff_requests(staff_id):
       500:
         description: Failed to fetch staff requests
     """
+    logger.info(f"[GET] /requests/{staff_id} - Received request to fetch requests for staff_id {staff_id}.")
     try:
         staff_requests = RequestModel.query.filter_by(staff_id=staff_id).all()
         if not staff_requests:
+            logger.warning(f"[GET] /requests/{staff_id} - No requests found for staff_id {staff_id}.")
             return jsonify({'message': 'No requests found for this staff member.'}), 404
+        logger.info(f"[GET] /requests/{staff_id} - Successfully fetched {len(staff_requests)} requests for staff_id {staff_id}.")
         return jsonify([request.to_dict() for request in staff_requests]), 200
     except Exception as e:
-        logger.error(f"Error fetching staff requests: {str(e)}")
+        logger.error(f"[GET] /requests/{staff_id} - Error fetching staff requests: {str(e)}")
         return jsonify({'error': 'Failed to fetch staff requests'}), 500
     
-
 
 # ------------------------------ Get a request by request_id ------------------------------
 
@@ -209,13 +212,16 @@ def get_request(request_id):
       500:
         description: Failed to fetch request
     """
+    logger.info(f"[GET] /requests/{request_id} - Received request to fetch request with request_id {request_id}.")
     try:
-        request = RequestModel.query.get(request_id)
-        if not request:
+        request_obj = RequestModel.query.get(request_id)
+        if not request_obj:
+            logger.warning(f"[GET] /requests/{request_id} - Request with request_id {request_id} not found.")
             return jsonify({'message': 'Request not found'}), 404
-        return jsonify(request.to_dict()), 200
+        logger.info(f"[GET] /requests/{request_id} - Successfully fetched request with request_id {request_id}.")
+        return jsonify(request_obj.to_dict()), 200
     except Exception as e:
-        logger.error(f"Error fetching request: {str(e)}")
+        logger.error(f"[GET] /requests/{request_id} - Error fetching request: {str(e)}")
         return jsonify({'error': 'Failed to fetch request'}), 500
     
 
@@ -228,7 +234,7 @@ def get_manager_requests(manager_id):
     ---
     responses:
       200:
-        description: A list of requests
+        description: A list of requests with staff details
         schema:
           type: array
           items:
@@ -238,50 +244,80 @@ def get_manager_requests(manager_id):
                 type: integer
               staff_id:
                 type: integer
-              department:
+              staff_name:
                 type: string
-              start_date:
+              role:
                 type: string
-              reason:
+              work_location:
                 type: string
-              duration:
+              from_date:
+                type: string
+              to_date:
                 type: string
               status:
                 type: string
-              reporting_manager_id:
-                type: integer
-              reporting_manager_name:
-                type: string
-              day_id:
-                type: integer
-              recurring_days:
-                type: integer
       500:
         description: Failed to fetch manager requests
     """
+    logger.info(f"[GET] /manager_requests/{manager_id} - Received request to fetch requests for manager_id {manager_id}.")
     try:
         profile_service_url = f"http://localhost:5002/managers/{manager_id}/team"
         response = requests.get(profile_service_url)
         if response.status_code != 200:
+            logger.error(f"[GET] /manager_requests/{manager_id} - Failed to fetch team members from Profile service for manager_id {manager_id}.")
             return jsonify({"error": "Failed to fetch team members from Profile service"}), response.status_code
 
         team_members = response.json()
         team_staff_ids = [member['staff_id'] for member in team_members]
 
         if not team_staff_ids:
+            logger.info(f"[GET] /manager_requests/{manager_id} - No team members found for manager_id {manager_id}.")
             return jsonify({"message": "No team members found for this manager."}), 200
 
         team_requests = RequestModel.query.filter(RequestModel.staff_id.in_(team_staff_ids)).all()
-        team_requests_data = [request.to_dict() for request in team_requests]
+        logger.info(f"[GET] /manager_requests/{manager_id} - Successfully fetched {len(team_requests)} requests for manager_id {manager_id}.")
+
+        team_requests_data = []
+        for request in team_requests:
+            staff_profile = next((member for member in team_members if member['staff_id'] == request.staff_id), None)
+            if staff_profile:
+                from_date = datetime.strptime(request.start_date, '%Y-%m-%d')
+                to_date = calculate_to_date(from_date, request.duration)
+                team_requests_data.append({
+                    'request_id': request.request_id,
+                    'staff_id': request.staff_id,
+                    'staff_name': f"{staff_profile['staff_fname']} {staff_profile['staff_lname']}",
+                    'role': staff_profile['position'],
+                    'work_location': request.reason,
+                    'from_date': request.start_date,
+                    'to_date': to_date.strftime('%Y-%m-%d'),
+                    'status': request.status
+                })
+
+        logger.info(f"[GET] /manager_requests/{manager_id} - Team requests data: {team_requests_data}")
         return jsonify(team_requests_data), 200
 
     except requests.exceptions.RequestException as req_err:
-        logger.error(f"Error connecting to Profile service: {str(req_err)}")
+        logger.error(f"[GET] /manager_requests/{manager_id} - Error connecting to Profile service: {str(req_err)}")
         return jsonify({"error": f"Error connecting to Profile service: {str(req_err)}"}), 500
     except Exception as e:
-        logger.error(f"Error fetching manager requests: {str(e)}")
+        logger.error(f"[GET] /manager_requests/{manager_id} - Error fetching manager requests: {str(e)}")
         return jsonify({"error": str(e)}), 500
-    
+
+def calculate_to_date(from_date, duration):
+    try:
+        if 'day' in duration:
+            days = int(duration.split()[0])
+            return from_date + timedelta(days=days)
+        elif 'hour' in duration:
+            hours = int(duration.split()[0])
+            return from_date + timedelta(hours=hours)
+        else:
+            logger.warning(f"[CALCULATE] - Unknown duration format: {duration}")
+            return from_date
+    except Exception as e:
+        logger.error(f"[CALCULATE] - Error calculating to_date: {str(e)}")
+        return from_date
 
 
 # ------------------------------ Add a request ------------------------------
@@ -308,33 +344,58 @@ def add_request():
             reason:
               type: string
             duration:
-              type: string
+              type: integer
             status:
               type: string
             reporting_manager_id:
               type: integer
             reporting_manager_name:
               type: string
+            day_id:
+              type: integer
+            recurring_days:
+              type: integer
       500:
         description: Failed to add request
     """
+    logger.info("[POST] /requests - Received request to add a new request.")
     try:
         data = request.get_json()
+        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        duration = (end_date - start_date).days
+
+        if duration < 0:
+            logger.warning("[POST] /requests - End date is before start date.")
+            return jsonify({'error': 'End date must be after start date.'}), 400
+
+        # Ensure recurring_days is an integer
+        recurring_days = data.get('recurring_days', 0)  # Default to 0 if not provided
+
         new_request = RequestModel(
             staff_id=data['staff_id'],
             department=data['department'],
             start_date=data['start_date'],
             reason=data['reason'],
-            duration=data['duration'],
-            status=data['status'],
+            duration=duration,
+            status='pending',
             reporting_manager_id=data['reporting_manager_id'],
-            reporting_manager_name=data['reporting_manager_name']
+            reporting_manager_name=data['reporting_manager_name'],
+            day_id=data.get('day_id', 0),  # Provide default if not in data
+            recurring_days=recurring_days
         )
         db.session.add(new_request)
         db.session.commit()
+        logger.info(f"[POST] /requests - Successfully added new request for staff_id {data['staff_id']}.")
         return jsonify(new_request.to_dict()), 201
+    except KeyError as ke:
+        logger.error(f"[POST] /requests - Missing key: {str(ke)}")
+        return jsonify({'error': f'Missing key: {str(ke)}'}), 400
+    except ValueError as ve:
+        logger.error(f"[POST] /requests - Date format error: {str(ve)}")
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
     except Exception as e:
-        logger.error(f"Error adding request: {str(e)}")
+        logger.error(f"[POST] /requests - Error adding request: {str(e)}")
         return jsonify({'error': 'Failed to add request'}), 500
     
 
@@ -356,12 +417,14 @@ def withdraw_request(request_id):
       500:
         description: Failed to withdraw request
     """
+    logger.info(f"[PUT] /requests/{request_id}/withdraw - Received request to withdraw request with request_id {request_id}.")
     try:
         role = request.headers.get('X-Role')
         client_staff_id = request.headers.get('X-Staff-ID')
         manager_department = request.headers.get('X-Department')
 
         if not role or not client_staff_id or not manager_department:
+            logger.warning(f"[PUT] /requests/{request_id}/withdraw - Missing authentication headers.")
             return jsonify({'message': 'Missing authentication headers.'}), 400
 
         role = int(role)
@@ -372,14 +435,17 @@ def withdraw_request(request_id):
                 request_id=request_id, staff_id=client_staff_id, status='pending'
             ).first()
             if not request_obj:
+                logger.warning(f"[PUT] /requests/{request_id}/withdraw - Unauthorized withdrawal attempt for request_id {request_id} by staff_id {client_staff_id}.")
                 return jsonify({'message': 'Unauthorized to withdraw this request or request already processed.'}), 403
         elif role == 1:
             request_obj = RequestModel.query.filter_by(
                 request_id=request_id, status='pending', department=manager_department
             ).first()
             if not request_obj:
+                logger.warning(f"[PUT] /requests/{request_id}/withdraw - Request not found or unauthorized withdrawal attempt for request_id {request_id} by manager in department {manager_department}.")
                 return jsonify({'message': 'Request not found, already processed, or not within your department.'}), 404
         else:
+            logger.warning(f"[PUT] /requests/{request_id}/withdraw - Invalid role provided.")
             return jsonify({'message': 'Invalid role.'}), 400
 
         request_obj.status = 'Withdrawn'
@@ -396,13 +462,14 @@ def withdraw_request(request_id):
 
         response = requests.post(schedule_update_url, json=schedule_update_data)
         if response.status_code != 200:
-            logger.error(f"Schedule microservice responded with status code {response.status_code}")
+            logger.error(f"[PUT] /requests/{request_id}/withdraw - Schedule microservice responded with status code {response.status_code}")
             return jsonify({'message': 'Request withdrawn, but failed to update schedule.'}), 500
 
+        logger.info(f"[PUT] /requests/{request_id}/withdraw - Successfully withdrawn request with request_id {request_id}.")
         return jsonify({'message': 'Request withdrawn successfully.'}), 200
 
     except Exception as e:
-        logger.error(f"Error withdrawing request: {str(e)}")
+        logger.error(f"[PUT] /requests/{request_id}/withdraw - Error withdrawing request: {str(e)}")
         return jsonify({'message': 'Request withdrawn, but an error occurred while updating schedule.', 'error': str(e)}), 500
 
 
@@ -425,12 +492,14 @@ def cancel_request(request_id):
       500:
         description: Failed to cancel request
     """
+    logger.info(f"[PUT] /requests/{request_id}/cancel - Received request to cancel request with request_id {request_id}.")
     try:
         role = request.headers.get('X-Role')
         client_staff_id = request.headers.get('X-Staff-ID')
         manager_department = request.headers.get('X-Department')
 
         if not role or not client_staff_id or not manager_department:
+            logger.warning(f"[PUT] /requests/{request_id}/cancel - Missing authentication headers.")
             return jsonify({'message': 'Missing authentication headers.'}), 400
 
         role = int(role)
@@ -440,9 +509,11 @@ def cancel_request(request_id):
         with db.session() as session:
             request_obj = session.get(RequestModel, request_id)
             if not request_obj:
+                logger.warning(f"[PUT] /requests/{request_id}/cancel - Unauthorized cancellation attempt for request_id {request_id}.")
                 return jsonify({'message': 'Unauthorized to cancel this request or request already processed.'}), 403
 
             if role == 1 and request_obj.department != manager_department:
+                logger.warning(f"[PUT] /requests/{request_id}/cancel - Request not found or unauthorized cancellation attempt for request_id {request_id} by manager in department {manager_department}.")
                 return jsonify({'message': 'Request not found, already processed, or not within your department.'}), 404
 
             request_obj.status = 'Cancelled'
@@ -459,13 +530,14 @@ def cancel_request(request_id):
 
             response = requests.post(schedule_update_url, json=schedule_update_data)
             if response.status_code != 200:
-                logger.error(f"Schedule microservice responded with status code {response.status_code}")
+                logger.error(f"[PUT] /requests/{request_id}/cancel - Schedule microservice responded with status code {response.status_code}")
                 return jsonify({'message': 'Request canceled, but failed to update schedule.'}), 500
 
+            logger.info(f"[PUT] /requests/{request_id}/cancel - Successfully canceled request with request_id {request_id}.")
             return jsonify({'message': 'Request canceled successfully.'}), 200
 
     except Exception as e:
-        logger.error(f"Error canceling request: {str(e)}")
+        logger.error(f"[PUT] /requests/{request_id}/cancel - Error canceling request: {str(e)}")
         return jsonify({'message': 'Request canceled, but an error occurred while updating schedule.', 'error': str(e)}), 500
 
 
@@ -505,12 +577,14 @@ def update_request(request_id):
       500:
         description: Failed to update request
     """
+    logger.info(f"[PUT] /requests/{request_id} - Received request to update request with request_id {request_id}.")
     try:
         role = request.headers.get('X-Role')
         client_staff_id = request.headers.get('X-Staff-ID')
         client_department = request.headers.get('X-Department')
 
         if not role or not client_staff_id or not client_department:
+            logger.warning(f"[PUT] /requests/{request_id} - Missing authentication headers.")
             return jsonify({'message': 'Missing authentication headers.'}), 400
 
         role = int(role)
@@ -518,11 +592,14 @@ def update_request(request_id):
 
         request_obj = RequestModel.query.get(request_id)
         if not request_obj:
+            logger.warning(f"[PUT] /requests/{request_id} - Request with request_id {request_id} not found.")
             return jsonify({'message': 'Request not found.'}), 404
 
         if role == 2 and request_obj.staff_id != client_staff_id:
+            logger.warning(f"[PUT] /requests/{request_id} - Unauthorized update attempt for request_id {request_id} by staff_id {client_staff_id}.")
             return jsonify({'message': 'Unauthorized to update this request.'}), 403
         elif role == 1 and request_obj.department != client_department:
+            logger.warning(f"[PUT] /requests/{request_id} - Unauthorized update attempt for request_id {request_id} by manager in department {client_department}.")
             return jsonify({'message': 'Unauthorized to update request from different department.'}), 403
 
         data = request.get_json()
@@ -534,10 +611,11 @@ def update_request(request_id):
             request_obj.status = 'Pending'
 
         db.session.commit()
+        logger.info(f"[PUT] /requests/{request_id} - Successfully updated request with request_id {request_id}.")
         return jsonify({'message': 'Request updated successfully.', 'request': request_obj.to_dict()}), 200
 
     except Exception as e:
-        logger.error(f"Error updating request: {str(e)}")
+        logger.error(f"[PUT] /requests/{request_id} - Error updating request: {str(e)}")
         db.session.rollback()
         return jsonify({'message': f'Error updating request: {str(e)}'}), 500
 

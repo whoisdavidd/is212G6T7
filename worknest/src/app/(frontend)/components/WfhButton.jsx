@@ -8,6 +8,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
+import MenuItem from "@mui/material/MenuItem";
 import { useState } from "react";
 
 // Function to fetch managers
@@ -30,7 +31,6 @@ const fetchManagers = async () => {
     const managerData = await response.json();
 
     if (response.ok) {
-      // Return the manager data as an array, assuming the response contains a single manager
       return [managerData]; // Wrap single object in array for Autocomplete
     } else {
       console.error("Error fetching managers:", managerData);
@@ -43,7 +43,7 @@ const fetchManagers = async () => {
 };
 
 // Function to create a WFH event
-const createWFHEvent = async (startDate, endDate, reason, manager) => {
+const createWFHEvent = async (startDate, endDate, reason, manager, dayId, recurringDays) => {
   const staff_id = sessionStorage.getItem("staff_id");
   const employeeDepartment = sessionStorage.getItem("department");
   try {
@@ -61,7 +61,9 @@ const createWFHEvent = async (startDate, endDate, reason, manager) => {
         reporting_manager_name: manager.reporting_manager_name,
         reporting_manager_id: manager.reporting_manager_id,
         department: employeeDepartment,
-        event_type: "WFH"
+        event_type: "WFH",
+        day_id: dayId,  // Ensure this is calculated and passed
+        recurring_days: recurringDays  // Ensure this is selected and passed
       }),
     });
 
@@ -82,14 +84,15 @@ export default function WfhButton() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
-  const [managers, setManagers] = useState([]);  // Initialize as an empty array
+  const [managers, setManagers] = useState([]);
   const [selectedManager, setSelectedManager] = useState(null);
+  const [recurringDays, setRecurringDays] = useState(0); // New state for recurring_days
 
   // Fetch managers when the dialog is opened
   const handleClickOpen = async () => {
     setOpen(true);
     const managersData = await fetchManagers();
-    setManagers(managersData);  // Ensure managers data is an array
+    setManagers(managersData);
   };
 
   const handleClose = () => {
@@ -100,10 +103,17 @@ export default function WfhButton() {
     setSelectedManager(value);
   };
 
+  // Calculate day_id based on startDate
+  const calculateDayId = (dateString) => {
+    const date = new Date(dateString);
+    return date.getDay(); // Returns 0 for Sunday, 1 for Monday, etc.
+  };
+
   // Handle form submission
   const handleSubmit = async () => {
-    await createWFHEvent(startDate, endDate, reason, selectedManager);
-    handleClose();  // Close the dialog after submitting
+    const dayId = calculateDayId(startDate);
+    await createWFHEvent(startDate, endDate, reason, selectedManager, dayId, recurringDays);
+    handleClose();
   };
 
   return (
@@ -150,8 +160,8 @@ export default function WfhButton() {
 
           {/* Autocomplete for manager's name */}
           <Autocomplete
-            options={managers}  // managers is now always an array
-            getOptionLabel={(option) => option.reporting_manager_name}  // manager_name from API
+            options={managers}
+            getOptionLabel={(option) => option.reporting_manager_name}
             onChange={handleManagerChange}
             renderInput={(params) => (
               <TextField
@@ -162,13 +172,29 @@ export default function WfhButton() {
               />
             )}
           />
+
+          {/* Dropdown for recurring_days */}
+          <TextField
+            select
+            margin="dense"
+            id="recurringDays"
+            label="Recurring"
+            fullWidth
+            value={recurringDays}
+            onChange={(e) => setRecurringDays(e.target.value)}
+          >
+            <MenuItem value={0}>None</MenuItem>
+            <MenuItem value={1}>Weekly</MenuItem>
+            <MenuItem value={2}>Biweekly</MenuItem>
+            <MenuItem value={3}>Monthly</MenuItem>
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={!startDate || !endDate || !reason}
+            disabled={!startDate || !endDate || !reason || !selectedManager}
           >
             Submit Request
           </Button>

@@ -3,6 +3,8 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import WfhButton from './WfhButton';
 import { DataGrid } from '@mui/x-data-grid';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
@@ -95,7 +97,7 @@ export default function FullFeaturedCrudGrid() {
       const department = sessionStorage.getItem('department');
 
       if (!role || !staffId || !department) {
-        alert("User session is invalid. Please log in again.");
+        toast.error("User session is invalid. Please log in again.");
         return;
       }
 
@@ -115,12 +117,12 @@ export default function FullFeaturedCrudGrid() {
         setRows(rows.map(row => (
           row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
         )));
-        alert("Request withdrawn successfully.");
+        toast.success("Request withdrawn successfully.");
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(`Error: ${data.message}`);
       }
     } catch (error) {
-      alert("An unexpected error occurred. Please try again.");
+      toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -131,7 +133,7 @@ export default function FullFeaturedCrudGrid() {
       const department = sessionStorage.getItem('department');
 
       if (!role || !staffId || !department) {
-        alert("User session is invalid. Please log in again.");
+        toast.error("User session is invalid. Please log in again.");
         return;
       }
 
@@ -151,12 +153,12 @@ export default function FullFeaturedCrudGrid() {
         setRows(rows.map(row => (
           row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
         )));
-        alert("Request canceled successfully.");
+        toast.success("Request canceled successfully.");
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(`Error: ${data.message}`);
       }
     } catch (error) {
-      alert("An unexpected error occurred. Please try again.");
+      toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -172,6 +174,7 @@ export default function FullFeaturedCrudGrid() {
           getRowId={(row) => `${row.staff_id}-${row.start_date}`} // Ensure uniqueness
         />
       </Box>
+      <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />
     </div>
   );
 }

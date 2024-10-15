@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Table,
     TableBody,
@@ -7,8 +7,8 @@ import {
     TableHead,
     TableRow,
     Paper,
-    TableSortLabel,
     Button,
+    TableSortLabel,
     Typography,
     Modal,
     Box,
@@ -43,7 +43,7 @@ const modalStyle = {
 };
 
 const ManagerTable = () => {
-    const [sortConfig, setSortConfig] = useState({ key: 'staff_fname', direction: 'asc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'staff_name', direction: 'asc' });
     const [filters, setFilters] = useState({
         name: '',
         role: '',
@@ -51,14 +51,13 @@ const ManagerTable = () => {
         from: '',
         to: '',
     });
-    const [employees, setEmployees] = useState([]); // State to hold employee data
-    const [error, setError] = useState(null); // State to hold error messages
-    const [open, setOpen] = useState(false); // State to control modal visibility
-    const [selectedEmployee, setSelectedEmployee] = useState(null); // State to hold selected employee details
-    const [page, setPage] = useState(0); // State for pagination
-    const [rowsPerPage, setRowsPerPage] = useState(5); // State for rows per page
+    const [employees, setEmployees] = useState([]);
+    const [error, setError] = useState(null);
+    const [open, setOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(5);
 
-    // Fetch employee data from the API
     useEffect(() => {
         const fetchEmployees = async () => {
             const managerId = sessionStorage.getItem('staff_id');
@@ -91,7 +90,6 @@ const ManagerTable = () => {
         fetchEmployees();
     }, []);
 
-    // Sorting functionality
     const handleSort = (column) => {
         const isAsc = sortConfig.key === column && sortConfig.direction === 'asc';
         setSortConfig({ key: column, direction: isAsc ? 'desc' : 'asc' });
@@ -107,20 +105,19 @@ const ManagerTable = () => {
         return 0;
     });
 
-    // Filtering functionality
     const filteredEmployees = sortedEmployees.filter(employee => {
-        const employeeFromDate = new Date(employee.from).getTime();  // Convert to timestamp for comparison
-        const employeeToDate = new Date(employee.to).getTime();
+        const employeeFromDate = new Date(employee.from_date).getTime();
+        const employeeToDate = new Date(employee.to_date).getTime();
 
         const filterFromDate = filters.from ? new Date(filters.from).getTime() : null;
         const filterToDate = filters.to ? new Date(filters.to).getTime() : null;
 
         return (
-            (filters.name ? (`${employee.staff_fname} ${employee.staff_lname}`.toLowerCase().includes(filters.name.toLowerCase())) : true) &&
+            (filters.name ? employee.staff_name.toLowerCase().includes(filters.name.toLowerCase()) : true) &&
             (filters.role ? employee.role.toLowerCase().includes(filters.role.toLowerCase()) : true) &&
-            (filters.workLocation ? employee.country.toLowerCase().includes(filters.workLocation.toLowerCase()) : true) &&
-            (filterFromDate ? employeeFromDate >= filterFromDate : true) &&  // Compare timestamps
-            (filterToDate ? employeeToDate <= filterToDate : true)  // Compare timestamps
+            (filters.workLocation ? employee.work_location.toLowerCase().includes(filters.workLocation.toLowerCase()) : true) &&
+            (filterFromDate ? employeeFromDate >= filterFromDate : true) &&
+            (filterToDate ? employeeToDate <= filterToDate : true)
         );
     });
 
@@ -141,7 +138,6 @@ const ManagerTable = () => {
         });
     };
 
-    // Pagination handlers
     const handleChangePage = (event, newPage) => {
         setPage(newPage);
     };
@@ -151,7 +147,6 @@ const ManagerTable = () => {
         setPage(0);
     };
 
-    // Modal handlers
     const handleRowClick = (employee) => {
         setSelectedEmployee(employee);
         setOpen(true);
@@ -162,12 +157,11 @@ const ManagerTable = () => {
         setSelectedEmployee(null);
     };
 
-    // Define filter options based on employee data
     const filterOptions = [
         {
             key: 'name',
             label: 'Name',
-            options: [...new Set(employees.map(employee => `${employee.staff_fname} ${employee.staff_lname}`))],
+            options: [...new Set(employees.map(employee => employee.staff_name))],
             value: filters.name,
             fullWidth: true,
         },
@@ -181,7 +175,7 @@ const ManagerTable = () => {
         {
             key: 'workLocation',
             label: 'Work Location',
-            options: [...new Set(employees.map(employee => employee.country))],
+            options: [...new Set(employees.map(employee => employee.work_location))],
             value: filters.workLocation,
             fullWidth: true,
         },
@@ -203,7 +197,6 @@ const ManagerTable = () => {
         },
     ];
 
-    // Utility function to format dates
     const formatDate = (dateString) => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString(undefined, options);
@@ -237,9 +230,9 @@ const ManagerTable = () => {
                         <TableRow>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'staff_fname'}
-                                    direction={sortConfig.key === 'staff_fname' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('staff_fname')}
+                                    active={sortConfig.key === 'staff_name'}
+                                    direction={sortConfig.key === 'staff_name' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('staff_name')}
                                 >
                                     <strong>Name</strong>
                                 </TableSortLabel>
@@ -255,27 +248,27 @@ const ManagerTable = () => {
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'country'}
-                                    direction={sortConfig.key === 'country' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('country')}
+                                    active={sortConfig.key === 'work_location'}
+                                    direction={sortConfig.key === 'work_location' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('work_location')}
                                 >
                                     <strong>Work Location</strong>
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'from'}
-                                    direction={sortConfig.key === 'from' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('from')}
+                                    active={sortConfig.key === 'from_date'}
+                                    direction={sortConfig.key === 'from_date' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('from_date')}
                                 >
                                     <strong>From</strong>
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'to'}
-                                    direction={sortConfig.key === 'to' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('to')}
+                                    active={sortConfig.key === 'to_date'}
+                                    direction={sortConfig.key === 'to_date' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('to_date')}
                                 >
                                     <strong>To</strong>
                                 </TableSortLabel>
@@ -288,16 +281,15 @@ const ManagerTable = () => {
                             : filteredEmployees
                         ).map((employee) => (
                             <TableRow key={employee.staff_id} hover onClick={() => handleRowClick(employee)} style={{ cursor: 'pointer' }}>
-                                <TableCell>{`${employee.staff_fname || 'N/A'} ${employee.staff_lname || 'N/A'}`}</TableCell>
+                                <TableCell>{employee.staff_name || 'N/A'}</TableCell>
                                 <TableCell>{employee.role || 'N/A'}</TableCell>
-                                <TableCell>{employee.country || 'N/A'}</TableCell>
-                                <TableCell>{formatDate(employee.from) || 'N/A'}</TableCell>
-                                <TableCell>{formatDate(employee.to) || 'N/A'}</TableCell>
+                                <TableCell>{employee.work_location || 'N/A'}</TableCell>
+                                <TableCell>{formatDate(employee.from_date) || 'N/A'}</TableCell>
+                                <TableCell>{formatDate(employee.to_date) || 'N/A'}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
-                {/* Pagination Component */}
                 <TablePagination
                     component="div"
                     count={filteredEmployees.length}
@@ -309,32 +301,33 @@ const ManagerTable = () => {
                 />
             </TableContainer>
 
-            {/* Modal to display full employee details */}
             <Modal
                 open={open}
                 onClose={handleClose}
                 aria-labelledby="employee-details-title"
                 aria-describedby="employee-details-description"
             >
-                <Box sx={modalStyle}>
+                <Box sx={{ ...modalStyle }}>
                     {selectedEmployee && (
                         <>
                             <Typography id="employee-details-title" variant="h6" component="h2">
                                 Employee Details
                             </Typography>
                             <Typography id="employee-details-description" sx={{ mt: 2 }}>
-                                <strong>Name:</strong> {`${selectedEmployee.staff_fname} ${selectedEmployee.staff_lname}`}
+                                <strong>Name:</strong> {selectedEmployee.staff_name}
                             </Typography>
                             <Typography sx={{ mt: 1 }}>
-                                <strong>Department:</strong> {selectedEmployee.department}
+                                <strong>Role:</strong> {selectedEmployee.role}
                             </Typography>
                             <Typography sx={{ mt: 1 }}>
-                                <strong>Position:</strong> {selectedEmployee.position}
+                                <strong>Work Location:</strong> {selectedEmployee.work_location}
                             </Typography>
                             <Typography sx={{ mt: 1 }}>
-                                <strong>Location:</strong> {selectedEmployee.location}
+                                <strong>From:</strong> {formatDate(selectedEmployee.from_date)}
                             </Typography>
-                            {/* Add more details as needed */}
+                            <Typography sx={{ mt: 1 }}>
+                                <strong>To:</strong> {formatDate(selectedEmployee.to_date)}
+                            </Typography>
                             <Button 
                                 onClick={handleClose} 
                                 variant="contained" 
@@ -349,7 +342,6 @@ const ManagerTable = () => {
             </Modal>
         </div>
     );
-
 };
 
 export default ManagerTable;

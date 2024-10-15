@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Initialize Flasgger
@@ -74,8 +74,10 @@ def get_all_events():
       500:
         description: Failed to fetch events
     """
+    logger.info("Request received to fetch all events.")
     try:
         events = Event.query.all()
+        logger.info(f"Fetched {len(events)} events successfully.")
         return jsonify([event.to_dict() for event in events]), 200
     except Exception as e:
         logger.error(f"Error fetching events: {str(e)}")

@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Initialize Flasgger
@@ -78,6 +78,7 @@ def create_or_update_schedule():
       500:
         description: Failed to create or update schedule
     """
+    logger.info("Request received to create or update a schedule.")
     try:
         data = request.get_json()
         schedule_entry = Schedule.query.filter_by(staff_id=data['staff_id']).first()
@@ -98,7 +99,8 @@ def create_or_update_schedule():
             message = "New schedule created successfully"
 
         db.session.commit()
-        return jsonify({"message": message}), 200 if schedule_entry else 201
+        logger.info(f"Schedule for staff_id {data['staff_id']} {'updated' if schedule_entry else 'created'} successfully.")
+        return jsonify({"message": message}), 200 if schedule_entry else 200
 
     except Exception as e:
         logger.error(f"Error creating or updating schedule: {str(e)}")
@@ -125,15 +127,18 @@ def update_schedule(staff_id):
       500:
         description: Failed to update schedule
     """
+    logger.info(f"Request received to update schedule for staff_id {staff_id}.")
     try:
         schedule_entry = Schedule.query.filter_by(staff_id=staff_id).first()
         if not schedule_entry:
+            logger.warning(f"Schedule for staff_id {staff_id} not found.")
             return jsonify({"message": "Schedule not found"}), 404
         data = request.get_json()
         schedule_entry.date = data.get('date', schedule_entry.date)
         schedule_entry.department = data.get('department', schedule_entry.department)
         schedule_entry.status = data.get('status', schedule_entry.status)
         db.session.commit()
+        logger.info(f"Schedule for staff_id {staff_id} updated successfully.")
         return jsonify({"message": "Schedule updated successfully"}), 200
     except Exception as e:
         logger.error(f"Error updating schedule: {str(e)}")
@@ -153,8 +158,10 @@ def get_all_schedules():
       500:
         description: Failed to fetch schedules
     """
+    logger.info("Request received to fetch all schedules.")
     try:
         schedules = Schedule.query.all()
+        logger.info(f"Fetched {len(schedules)} schedules successfully.")
         return jsonify([schedule.to_dict() for schedule in schedules]), 200
     except Exception as e:
         logger.error(f"Error fetching schedules: {str(e)}")
@@ -181,10 +188,13 @@ def get_schedule(staff_id):
       500:
         description: Failed to fetch schedule
     """
+    logger.info(f"Request received to fetch schedule for staff_id {staff_id}.")
     try:
         schedule = Schedule.query.filter_by(staff_id=staff_id).first()
         if schedule:
+            logger.info(f"Fetched schedule for staff_id {staff_id}.")
             return jsonify(schedule.to_dict()), 200
+        logger.warning(f"Schedule for staff_id {staff_id} not found.")
         return jsonify({"message": "Schedule not found"}), 404
     except Exception as e:
         logger.error(f"Error fetching schedule: {str(e)}")

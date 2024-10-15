@@ -21,7 +21,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Initialize Flasgger
@@ -101,10 +101,13 @@ def get_employee_profile(staff_id):
       500:
         description: Failed to fetch employee profile
     """
+    logger.info(f"Request received to fetch profile for staff_id {staff_id}.")
     try:
         employee = Profile.query.filter_by(staff_id=staff_id).first()
         if not employee:
+            logger.warning(f"Employee with staff_id {staff_id} not found.")
             return jsonify({"message": "Employee not found."}), 404
+        logger.info(f"Fetched profile for staff_id {staff_id}.")
         return jsonify(employee.to_dict()), 200
     except Exception as e:
         logger.error(f"Error fetching employee profile: {str(e)}")
@@ -139,14 +142,17 @@ def get_managers(staff_id):
       500:
         description: Failed to fetch manager details
     """
+    logger.info(f"Request received to fetch manager details for staff_id {staff_id}.")
     try:
         employee = Profile.query.filter_by(staff_id=staff_id).first()
         manager = Profile.query.filter_by(staff_id=employee.reporting_manager_id).first()
         if manager:
+            logger.info(f"Fetched manager details for staff_id {staff_id}.")
             return jsonify({
                 "reporting_manager_name": f"{manager.staff_fname} {manager.staff_lname}",
                 "reporting_manager_id": manager.staff_id
             }), 200
+        logger.warning(f"Manager for staff_id {staff_id} not found.")
         return jsonify({"message": "Manager not found."}), 404
     except Exception as e:
         logger.error(f"Error fetching manager details: {str(e)}")
@@ -188,8 +194,10 @@ def get_manager_team(manager_id):
       500:
         description: Failed to fetch manager's team
     """
+    logger.info(f"Request received to fetch team for manager_id {manager_id}.")
     try:
         team_members = Profile.query.filter_by(reporting_manager_id=manager_id).all()
+        logger.info(f"Fetched team for manager_id {manager_id}.")
         team_members_data = [member.to_dict() for member in team_members]
         return jsonify(team_members_data), 200
     except Exception as e:
@@ -227,8 +235,10 @@ def get_all_profiles():
       500:
         description: Failed to fetch profiles
     """
+    logger.info("Request received to fetch all profiles.")
     try:
         profiles = Profile.query.all()
+        logger.info(f"Fetched {len(profiles)} profiles successfully.")
         return jsonify([profile.to_dict() for profile in profiles]), 200
     except Exception as e:
         logger.error(f"Error fetching profiles: {str(e)}")
@@ -279,11 +289,13 @@ def authentication():
       500:
         description: Authentication failed
     """
+    logger.info("Authentication request received.")
     try:
         email = request.json.get("email")
         password = request.json.get("password")
         user = Profile.query.filter_by(email=email, password=password).first()
         if user:
+            logger.info(f"User {email} authenticated successfully.")
             return jsonify({
                 "code": 200,
                 "data": {
@@ -294,6 +306,7 @@ def authentication():
                     'staff_id': user.staff_id
                 }
             }), 200
+        logger.warning(f"Invalid credentials for user {email}.")
         return jsonify({"code": 401, "message": "Invalid credentials."}), 401
     except Exception as e:
         logger.error(f"Error during authentication: {str(e)}")
@@ -323,6 +336,7 @@ def get_piechart_data():
       500:
         description: Failed to fetch pie chart data
     """
+    logger.info("Request received to fetch pie chart data.")
     try:
         profiles = Profile.query.all()
         data = {"office": 0, "wfh": 0}
@@ -338,6 +352,7 @@ def get_piechart_data():
             {"label": "WFH", "value": data["wfh"]}
         ]
 
+        logger.info("Pie chart data fetched successfully.")
         return jsonify(piechart_data), 200
     except Exception as e:
         logger.error(f"Error fetching pie chart data: {str(e)}")
@@ -371,6 +386,7 @@ def get_departments():
       500:
         description: Failed to fetch departments
     """
+    logger.info("Request received to fetch department data.")
     try:
         profiles = Profile.query.all()
         department_list = []
@@ -383,6 +399,7 @@ def get_departments():
                 "location": profile.location
             })
 
+        logger.info("Department data fetched successfully.")
         return jsonify(department_list), 200
     except Exception as e:
         logger.error(f"Error fetching departments: {str(e)}")
@@ -420,6 +437,7 @@ def get_barchart_data():
       500:
         description: Failed to fetch bar chart data
     """
+    logger.info("Request received to fetch bar chart data.")
     try:
         profiles = Profile.query.all()
         data = defaultdict(lambda: {"WFH": 0, "OFFICE": 0})
@@ -434,6 +452,7 @@ def get_barchart_data():
         wfh_data = [data[dept]['WFH'] for dept in departments]
         office_data = [data[dept]['OFFICE'] for dept in departments]
 
+        logger.info("Bar chart data fetched successfully.")
         return jsonify({
             "xLabels": departments,
             "seriesData": [
