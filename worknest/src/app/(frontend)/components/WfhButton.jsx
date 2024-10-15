@@ -47,22 +47,21 @@ const createWFHEvent = async (startDate, endDate, reason, manager) => {
   const staff_id = sessionStorage.getItem("staff_id");
   const employeeDepartment = sessionStorage.getItem("department");
   try {
-    const response = await fetch("http://127.0.0.1:5001/event", {
+    const response = await fetch("http://localhost:5003/requests", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         staff_id: staff_id,
-        event_name: "WFH",  // Assuming the event name is fixed as WFH
-        // event_date: new Date().toISOString(),  // Set to the current date
+        event_name: "WFH",
         start_date: startDate,
         end_date: endDate,
         reason: reason,
-        reporting_manager_name: manager.manager_name,  // Use manager's name
-        reporting_manager_id: manager.manager_id, // Use manager's ID
+        reporting_manager_name: manager.reporting_manager_name,
+        reporting_manager_id: manager.reporting_manager_id,
         department: employeeDepartment,
-        event_type : "WFH"
+        event_type: "WFH"
       }),
     });
 

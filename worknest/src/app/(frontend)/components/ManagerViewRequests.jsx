@@ -95,7 +95,6 @@ const ManagerViewRequests = () => {
                 }
 
                 const data = await response.json();
-                console.log(data);
                 setRequests(data);
             } catch (error) {
                 console.error('Error fetching manager requests:', error);

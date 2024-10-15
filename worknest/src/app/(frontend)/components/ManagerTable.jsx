@@ -67,7 +67,7 @@ const ManagerTable = () => {
                 return;
             }
             try {
-                const response = await fetch(`http://127.0.0.1:5003/manager_requests/${managerId}`, {
+                const response = await fetch(`http://localhost:5003/manager_requests/${managerId}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json"
@@ -75,12 +75,12 @@ const ManagerTable = () => {
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
                 setEmployees(data);
-                console.log("EMPLOYEES", employees)
                 setError(null);
             } catch (error) {
                 console.error('Error fetching employees:', error);
