@@ -8,38 +8,48 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
   const staff_id = 210030; // Assuming this will be used for future actions
 
   // Fetch event data from the Flask backend
-  React.useEffect(() => {
-    const fetchEventData = async () => {
-      try {
-        const response = await fetch(`http://localhost:5003/requests`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch requests');
-        }
-        const data = await response.json();
-        const formattedData = data.map((item) => {
-          const date = new Date(item.start_date);
-          const formattedDate = date.toISOString().split('T')[0];
-          return {
-            request_id: item.request_id,
-            staff_id: item.staff_id,
-            department: item.department,
-            start_date: formattedDate,
-            reason: item.reason,
-            duration: item.duration,
-            status: item.status,
-            reporting_manager_id: item.reporting_manager_id,
-            reporting_manager_name: item.reporting_manager_name,
-          };
-        });
-        setRows(formattedData);
-      } catch (error) {
-        console.error('Error fetching event data:', error);
+  const fetchEventData = async (retryCount = 3) => {
+    try {
+      const response = await fetch(`http://localhost:5003/requests`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch requests');
       }
-    };
+      const data = await response.json();
+      const formattedData = data.map((item) => {
+        const date = new Date(item.start_date);
+        const formattedDate = date.toISOString().split('T')[0];
+        return {
+          request_id: item.request_id,
+          staff_id: item.staff_id,
+          department: item.department,
+          start_date: formattedDate,
+          reason: item.reason,
+          duration: item.duration,
+          status: item.status,
+          reporting_manager_id: item.reporting_manager_id,
+          reporting_manager_name: item.reporting_manager_name,
+        };
+      });
+      setRows(formattedData);
+      setLoading(false);
+    } catch (error) {
+      if (retryCount > 0) {
+        setTimeout(() => fetchEventData(retryCount - 1), 1000);
+      } else {
+        console.error('Error fetching event data:', error);
+        setError(error.message);
+        setLoading(false);
+      }
+    }
+  };
+
+  React.useEffect(() => {
     fetchEventData();
   }, []);
 
@@ -91,6 +101,10 @@ export default function FullFeaturedCrudGrid() {
   ];
 
   const handleWithdrawClick = async (request_id) => {
+    const originalRows = [...rows];
+    setRows(rows.map(row => (
+      row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
+    )));
     try {
       const role = sessionStorage.getItem('role');
       const staffId = sessionStorage.getItem('staff_id');
@@ -114,19 +128,22 @@ export default function FullFeaturedCrudGrid() {
 
       const data = await response.json();
       if (response.ok) {
-        setRows(rows.map(row => (
-          row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
-        )));
         toast.success("Request withdrawn successfully.");
       } else {
+        setRows(originalRows);
         toast.error(`Error: ${data.message}`);
       }
     } catch (error) {
+      setRows(originalRows);
       toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
   const handleCancelClick = async (request_id) => {
+    const originalRows = [...rows];
+    setRows(rows.map(row => (
+      row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
+    )));
     try {
       const role = sessionStorage.getItem('role');
       const staffId = sessionStorage.getItem('staff_id');
@@ -150,48 +167,19 @@ export default function FullFeaturedCrudGrid() {
 
       const data = await response.json();
       if (response.ok) {
-        setRows(rows.map(row => (
-          row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
-        )));
         toast.success("Request canceled successfully.");
       } else {
+        setRows(originalRows);
         toast.error(`Error: ${data.message}`);
       }
     } catch (error) {
+      setRows(originalRows);
       toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
-  const renderActions = (params) => {
-    const { status, request_id, staff_id } = params.row;
-    const role = sessionStorage.getItem('role');
-    const currentStaffId = sessionStorage.getItem('staff_id');
-
-    const isAuthorized = (role == 2 && staff_id == currentStaffId) || role == 3; // Staff or Manager
-
-    return (
-      <div>
-        {isAuthorized && status === 'Pending' && (
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={() => handleCancelClick(request_id)}
-          >
-            Cancel
-          </Button>
-        )}
-        {isAuthorized && status === 'Approved' && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleWithdrawClick(request_id)}
-          >
-            Withdraw
-          </Button>
-        )}
-      </div>
-    );
-  };
+  if (loading) return <div>Loading requests...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
@@ -203,7 +191,6 @@ export default function FullFeaturedCrudGrid() {
           pageSize={5}
           rowsPerPageOptions={[5]}
           getRowId={(row) => `${row.staff_id}-${row.start_date}`} // Ensure uniqueness
-          renderCell={renderActions}
         />
       </Box>
       <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />

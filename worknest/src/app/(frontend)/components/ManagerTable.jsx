@@ -17,6 +17,8 @@ import {
 import { styled } from '@mui/system'; // Added import for 'styled'
 import FilterForm from './FilterForm';
 import '../../styles/App.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const StatusLabel = styled(Box)(({ status }) => ({
     display: 'inline-block',
@@ -58,35 +60,39 @@ const ManagerTable = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
 
-    useEffect(() => {
-        const fetchEmployees = async () => {
-            const managerId = sessionStorage.getItem('staff_id');
-            if (!managerId) {
-                setError('Manager ID not found. Please log in again.');
-                return;
-            }
-            try {
-                const response = await fetch(`http://localhost:5003/manager_requests/${managerId}`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    const fetchEmployees = async (retryCount = 3) => {
+        const managerId = sessionStorage.getItem('staff_id');
+        if (!managerId) {
+            setError('Manager ID not found. Please log in again.');
+            return;
+        }
+        try {
+            const response = await fetch(`http://localhost:5003/manager_requests/${managerId}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
                 }
+            });
 
-                const data = await response.json();
-                setEmployees(data);
-                setError(null);
-            } catch (error) {
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setEmployees(data);
+            setError(null);
+        } catch (error) {
+            if (retryCount > 0) {
+                setTimeout(() => fetchEmployees(retryCount - 1), 1000);
+            } else {
                 console.error('Error fetching employees:', error);
                 setError(error.message);
             }
-        };
+        }
+    };
 
+    useEffect(() => {
         fetchEmployees();
     }, []);
 
@@ -233,6 +239,84 @@ const ManagerTable = () => {
         );
     };
 
+    const handleWithdrawClick = async (request_id) => {
+        const originalEmployees = [...employees];
+        setEmployees(employees.map(emp => (
+            emp.request_id === request_id ? { ...emp, status: 'Withdrawn' } : emp
+        )));
+        try {
+            const role = sessionStorage.getItem('role');
+            const staffId = sessionStorage.getItem('staff_id');
+            const department = sessionStorage.getItem('department');
+
+            if (!role || !staffId || !department) {
+                toast.error("User session is invalid. Please log in again.");
+                return;
+            }
+
+            const response = await fetch(`http://localhost:5003/requests/${request_id}/withdraw`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Role': role,
+                    'X-Staff-ID': staffId,
+                    'X-Department': department,
+                },
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                toast.success("Request withdrawn successfully.");
+            } else {
+                setEmployees(originalEmployees);
+                toast.error(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            setEmployees(originalEmployees);
+            toast.error("An unexpected error occurred. Please try again.");
+        }
+    };
+
+    const handleCancelClick = async (request_id) => {
+        const originalEmployees = [...employees];
+        setEmployees(employees.map(emp => (
+            emp.request_id === request_id ? { ...emp, status: 'Cancelled' } : emp
+        )));
+        try {
+            const role = sessionStorage.getItem('role');
+            const staffId = sessionStorage.getItem('staff_id');
+            const department = sessionStorage.getItem('department');
+
+            if (!role || !staffId || !department) {
+                toast.error("User session is invalid. Please log in again.");
+                return;
+            }
+
+            const response = await fetch(`http://localhost:5003/requests/${request_id}/cancel`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Role': role,
+                    'X-Staff-ID': staffId,
+                    'X-Department': department,
+                },
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                toast.success("Request canceled successfully.");
+            } else {
+                setEmployees(originalEmployees);
+                toast.error(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            setEmployees(originalEmployees);
+            toast.error("An unexpected error occurred. Please try again.");
+        }
+    };
+
     return (
         <div className="table-container">
             {error && (
@@ -372,6 +456,7 @@ const ManagerTable = () => {
                     )}
                 </Box>
             </Modal>
+            <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />
         </div>
     );
 };

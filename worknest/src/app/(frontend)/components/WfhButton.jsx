@@ -10,6 +10,8 @@ import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import MenuItem from "@mui/material/MenuItem";
 import { useState } from "react";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Function to fetch managers
 const fetchManagers = async () => {
@@ -46,6 +48,8 @@ const fetchManagers = async () => {
 const createWFHEvent = async (startDate, endDate, reason, manager, dayId, recurringDays) => {
   const staff_id = sessionStorage.getItem("staff_id");
   const employeeDepartment = sessionStorage.getItem("department");
+  const requesterEmail = sessionStorage.getItem("email");
+
   try {
     const response = await fetch("http://localhost:5003/requests", {
       method: "POST",
@@ -60,22 +64,27 @@ const createWFHEvent = async (startDate, endDate, reason, manager, dayId, recurr
         reason: reason,
         reporting_manager_name: manager.reporting_manager_name,
         reporting_manager_id: manager.reporting_manager_id,
+        reporting_manager_email: manager.reporting_manager_email,
+        requester_email: requesterEmail,
         department: employeeDepartment,
         event_type: "WFH",
-        day_id: dayId,  // Ensure this is calculated and passed
-        recurring_days: recurringDays  // Ensure this is selected and passed
+        day_id: dayId,
+        recurring_days: recurringDays
       }),
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      console.log("WFH Event Created:", data);
+      toast.success("WFH Event Created Successfully");
+      return data;
     } else {
-      console.error("Error creating WFH event:", data);
+      throw new Error(data.message || "Failed to create WFH event");
     }
   } catch (error) {
     console.error("Error:", error);
+    toast.error("An error occurred while creating the WFH event. Please try again.");
+    throw error;
   }
 };
 
@@ -86,7 +95,7 @@ export default function WfhButton() {
   const [reason, setReason] = useState("");
   const [managers, setManagers] = useState([]);
   const [selectedManager, setSelectedManager] = useState(null);
-  const [recurringDays, setRecurringDays] = useState(0); // New state for recurring_days
+  const [recurringDays, setRecurringDays] = useState(0);
 
   // Fetch managers when the dialog is opened
   const handleClickOpen = async () => {
@@ -112,8 +121,12 @@ export default function WfhButton() {
   // Handle form submission
   const handleSubmit = async () => {
     const dayId = calculateDayId(startDate);
-    await createWFHEvent(startDate, endDate, reason, selectedManager, dayId, recurringDays);
-    handleClose();
+    try {
+      await createWFHEvent(startDate, endDate, reason, selectedManager, dayId, recurringDays);
+      handleClose();
+    } catch (error) {
+      console.error("Error submitting WFH request:", error);
+    }
   };
 
   return (
@@ -130,7 +143,6 @@ export default function WfhButton() {
             Fill out the details below to submit your WFH request.
           </DialogContentText>
 
-          {/* Date pickers for start and end dates */}
           <TextField
             margin="dense"
             id="startDate"
@@ -158,7 +170,6 @@ export default function WfhButton() {
             onChange={(e) => setReason(e.target.value)}
           />
 
-          {/* Autocomplete for manager's name */}
           <Autocomplete
             options={managers}
             getOptionLabel={(option) => option.reporting_manager_name}
@@ -173,7 +184,6 @@ export default function WfhButton() {
             )}
           />
 
-          {/* Dropdown for recurring_days */}
           <TextField
             select
             margin="dense"

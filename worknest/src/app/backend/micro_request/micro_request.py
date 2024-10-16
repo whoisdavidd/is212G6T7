@@ -40,10 +40,13 @@ class RequestModel(db.Model):
     status = db.Column(db.String(50), nullable=False)
     reporting_manager_id = db.Column(db.Integer)
     reporting_manager_name = db.Column(db.String(50))
+    reporting_manager_email = db.Column(db.String(50))
+    requester_email = db.Column(db.String(50))
     day_id = db.Column(db.Integer)
     recurring_days = db.Column(db.Integer)
+    approver_comment = db.Column(db.String(255))
     
-    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, day_id, recurring_days):
+    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, reporting_manager_email, requester_email, day_id, recurring_days, approver_comment):
         self.staff_id = staff_id
         self.department = department
         self.start_date = start_date
@@ -52,8 +55,11 @@ class RequestModel(db.Model):
         self.status = status
         self.reporting_manager_id = reporting_manager_id
         self.reporting_manager_name = reporting_manager_name
+        self.reporting_manager_email = reporting_manager_email
+        self.requester_email = requester_email
         self.day_id = day_id
         self.recurring_days = recurring_days
+        self.approver_comment = approver_comment
         
     def to_dict(self):
         return {
@@ -66,8 +72,11 @@ class RequestModel(db.Model):
             'status': self.status,
             'reporting_manager_id': self.reporting_manager_id,
             'reporting_manager_name': self.reporting_manager_name,
+            'reporting_manager_email': self.reporting_manager_email,
+            'requester_email': self.requester_email,
             'day_id': self.day_id,
-            'recurring_days': self.recurring_days
+            'recurring_days': self.recurring_days,
+            'approver_comment': self.approver_comment
         }
 
 
@@ -351,10 +360,18 @@ def add_request():
               type: integer
             reporting_manager_name:
               type: string
+            reporting_manager_email:
+              type: string
+            requester_email:
+              type: string
             day_id:
               type: integer
             recurring_days:
-              type: integer
+              type: array
+              items:
+                type: integer
+            approver_comment:
+              type: string
       500:
         description: Failed to add request
     """
@@ -369,8 +386,14 @@ def add_request():
             logger.warning("[POST] /requests - End date is before start date.")
             return jsonify({'error': 'End date must be after start date.'}), 400
 
-        # Ensure recurring_days is an integer
-        recurring_days = data.get('recurring_days', 0)  # Default to 0 if not provided
+        # Ensure recurring_days is an array
+        recurring_days = data.get('recurring_days', [])
+        if isinstance(recurring_days, int):
+            recurring_days = [recurring_days]
+
+        # Check for missing keys and provide defaults if necessary
+        reporting_manager_email = data.get('reporting_manager_email', '')
+        requester_email = data.get('requester_email', '')
 
         new_request = RequestModel(
             staff_id=data['staff_id'],
@@ -378,11 +401,14 @@ def add_request():
             start_date=data['start_date'],
             reason=data['reason'],
             duration=duration,
-            status='pending',
+            status='Pending',
             reporting_manager_id=data['reporting_manager_id'],
             reporting_manager_name=data['reporting_manager_name'],
-            day_id=data.get('day_id', 0),  # Provide default if not in data
-            recurring_days=recurring_days
+            reporting_manager_email=reporting_manager_email,
+            requester_email=requester_email,
+            day_id=data.get('day_id', 0),
+            recurring_days=recurring_days,
+            approver_comment=data.get('approver_comment', '')
         )
         db.session.add(new_request)
         db.session.commit()
