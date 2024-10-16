@@ -1,3 +1,86 @@
+// import React, { useEffect, useState } from 'react';
+// import FullCalendar from '@fullcalendar/react';
+// import dayGridPlugin from '@fullcalendar/daygrid';
+// import interactionPlugin from '@fullcalendar/interaction';
+
+// export default function StaffCalendar() {
+//   const [events, setEvents] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+
+//   // Fetch requests for the staff member from Flask API
+//   useEffect(() => {
+//     const fetchRequests = async () => {
+//       try {
+//         const response = await fetch(`http://localhost:5003/request`);
+//         if (!response.ok) {
+//           throw new Error('Failed to fetch requests');
+//         }
+//         const data = await response.json();
+
+//         // Map requests to events format for FullCalendar
+//         const mappedEvents = data
+//           .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled') // Filter out withdrawn and cancelled
+//           .map(request => {
+//             const date = new Date(request.start_date); // Parse the date
+//             const formattedDate = date.toISOString().split('T')[0]; // Format to 'YYYY-MM-DD'
+//             return {
+//               id: String(request.staff_id),
+//               title: `${request.reason} - ${request.status}`,
+//               start: formattedDate, // Use formatted date
+//               end: formattedDate,   // Use formatted date (assuming single-day events)
+//               extendedProps: {
+//                 type: request.reason.toLowerCase() === 'wfh' ? 'wfh' : 'general',
+//                 status: request.status
+//               }
+//             };
+//           });        
+
+//         console.log('Mapped Events:', mappedEvents); // Log the mapped events
+
+//         setEvents(mappedEvents);
+//         setLoading(false);
+//       } catch (error) {
+//         console.error('Error fetching requests:', error);
+//         setError(error.message);
+//         setLoading(false);
+//       }
+//     };
+
+//     fetchRequests();
+//   }, []);
+
+//   if (loading) return <div>Loading requests...</div>;
+//   if (error) return <div>Error: {error}</div>;
+
+//   return (
+//     <>
+//       <FullCalendar
+//         plugins={[dayGridPlugin, interactionPlugin]}
+//         initialView="dayGridMonth"
+//         contentHeight="auto"
+//         events={events}
+//         eventContent={renderEventContent} // Render custom event content
+//       />
+//     </>
+//   );
+// }
+
+// // Render event content in the calendar
+// function renderEventContent(eventInfo) {
+//   const { event } = eventInfo;
+//   const isWfh = event.extendedProps.type === 'wfh';
+//   const status = event.extendedProps.status;
+
+//   return (
+//     <>
+//       <b>{event.title}</b>
+//       {isWfh && status && <div>Status: {status}</div>}
+//     </>
+//   );
+// }
+
+
 import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -8,7 +91,6 @@ export default function StaffCalendar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch requests for the staff member from Flask API
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -17,27 +99,50 @@ export default function StaffCalendar() {
           throw new Error('Failed to fetch requests');
         }
         const data = await response.json();
+        console.log('API Response Data:', data);
 
         // Map requests to events format for FullCalendar
         const mappedEvents = data
-          .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled') // Filter out withdrawn and cancelled
-          .map(request => {
-            const date = new Date(request.start_date); // Parse the date
-            const formattedDate = date.toISOString().split('T')[0]; // Format to 'YYYY-MM-DD'
-            return {
-              id: String(request.staff_id),
-              title: `${request.reason} - ${request.status}`,
-              start: formattedDate, // Use formatted date
-              end: formattedDate,   // Use formatted date (assuming single-day events)
-              extendedProps: {
-                type: request.reason.toLowerCase() === 'wfh' ? 'wfh' : 'general',
-                status: request.status
+          .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled')
+          .flatMap(request => {
+            const startDate = new Date(request.start_date);
+            const duration = request.duration || 1; // Default to 1 day if duration is not provided
+            const recurringDays = request.recurring_days || []; // Ensure this is an array
+
+            // Generate events for recurring days
+            return recurringDays.flatMap(day => {
+              const eventsForDays = [];
+
+              // Loop to generate events for the next 4 weeks (adjust as necessary)
+              for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
+                const eventDate = new Date(startDate);
+                // Calculate the day for this week offset
+                const daysUntilNextOccurrence = (day + 7 * weekOffset) - startDate.getDay();
+                eventDate.setDate(startDate.getDate() + daysUntilNextOccurrence);
+
+                // Only add if the eventDate is valid (after the start date)
+                if (eventDate >= startDate) {
+                  const endDate = new Date(eventDate);
+                  endDate.setDate(eventDate.getDate() + duration); // Calculate end date based on duration
+
+                  eventsForDays.push({
+                    id: String(request.staff_id),
+                    title: `${request.reason} - ${request.status}`,
+                    start: eventDate.toISOString().split('T')[0], // Format to 'YYYY-MM-DD'
+                    end: endDate.toISOString().split('T')[0],
+                    extendedProps: {
+                      type: request.reason.toLowerCase() === 'wfh' ? 'wfh' : 'general',
+                      status: request.status,
+                    },
+                  });
+                }
               }
-            };
-          });        
 
-        console.log('Mapped Events:', mappedEvents); // Log the mapped events
+              return eventsForDays;
+            });
+          });
 
+        console.log('Mapped Events:', mappedEvents);
         setEvents(mappedEvents);
         setLoading(false);
       } catch (error) {
@@ -54,19 +159,16 @@ export default function StaffCalendar() {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <>
-      <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        contentHeight="auto"
-        events={events}
-        eventContent={renderEventContent} // Render custom event content
-      />
-    </>
+    <FullCalendar
+      plugins={[dayGridPlugin, interactionPlugin]}
+      initialView="dayGridMonth"
+      contentHeight="auto"
+      events={events}
+      eventContent={renderEventContent}
+    />
   );
 }
 
-// Render event content in the calendar
 function renderEventContent(eventInfo) {
   const { event } = eventInfo;
   const isWfh = event.extendedProps.type === 'wfh';
@@ -79,5 +181,3 @@ function renderEventContent(eventInfo) {
     </>
   );
 }
-
-

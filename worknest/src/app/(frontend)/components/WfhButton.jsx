@@ -8,29 +8,32 @@ const WfhButton = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [showForm, setShowForm] = useState(false); // State to toggle form visibility
+  const [showForm, setShowForm] = useState(false);
   
-  // State to hold user input
   const [formData, setFormData] = useState({
     staff_id: '',
     department: '',
     start_date: '',
     reason: 'Work From Home',
     duration: '',
+    recurring_days: '', // Change here
     reporting_manager_id: '',
-    reporting_manager_name: ''
+    reporting_manager_name: '',
+    reporting_manager_email: '',
+    requester_email: ''
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // Parse staff_id and reporting_manager_id as integers and format date
     let parsedValue = value;
+
     if (name === 'staff_id' || name === 'reporting_manager_id') {
       parsedValue = parseInt(value);
     } else if (name === 'start_date') {
-      // Convert to ISO date string format
       parsedValue = new Date(value).toISOString().split('T')[0];
+    } else if (name === 'recurring_days') {
+      // No need to parse here; keep it as a string
+      parsedValue = value; // Store as-is for now
     }
 
     setFormData((prevData) => ({
@@ -46,25 +49,35 @@ const WfhButton = () => {
     setSuccess(null);
 
     try {
+      const { start_date, duration, recurring_days } = formData;
+      const durationDays = parseInt(duration);
+      const startDate = new Date(start_date);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + durationDays);
+
       const requestData = {
         ...formData,
-        status: 'Pending' // Add status here
+        status: 'Pending',
+        end_date: endDate.toISOString().split('T')[0],
+        recurring_days: recurring_days.split(',').map(day => parseInt(day.trim())).filter(day => !isNaN(day)) // Parse when sending
       };
 
       const response = await axios.post(`http://localhost:5003/add_request/${formData.staff_id}`, requestData);
       console.log('Request added:', response.data);
       setSuccess('Request submitted successfully!');
-      // Optionally reset form data
       setFormData({
         staff_id: '',
         department: '',
         start_date: '',
         reason: 'Work From Home',
         duration: '',
+        recurring_days: '',
         reporting_manager_id: '',
-        reporting_manager_name: ''
+        reporting_manager_name: '',
+        reporting_manager_email: '',
+        requester_email: ''
       });
-      setShowForm(false); // Hide the form after successful submission
+      setShowForm(false);
     } catch (error) {
       console.error('Error adding request:', error);
       setError('Failed to submit request');
@@ -75,7 +88,6 @@ const WfhButton = () => {
 
   return (
     <div>
-      {/* Main Button to Show/Hide Form */}
       <Stack spacing={2} direction="row">
         <Button 
           variant="text" 
@@ -125,13 +137,25 @@ const WfhButton = () => {
           </div>
           <div>
             <label>
-              Duration:
+              Duration (in days):
               <input
-                type="text"
+                type="number"
                 name="duration"
                 value={formData.duration}
                 onChange={handleChange}
                 required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Recurring Days (e.g., 1,3,5 for Mon, Wed, Fri):
+              <input
+                type="text"
+                name="recurring_days"
+                value={formData.recurring_days}
+                onChange={handleChange}
+                placeholder="e.g. 1,3,5"
               />
             </label>
           </div>
@@ -159,6 +183,30 @@ const WfhButton = () => {
               />
             </label>
           </div>
+          <div>
+            <label>
+              Reporting Manager Email:
+              <input
+                type="email"
+                name="reporting_manager_email"
+                value={formData.reporting_manager_email}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Requester Email:
+              <input
+                type="email"
+                name="requester_email"
+                value={formData.requester_email}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
           <Stack spacing={2} direction="row">
             <Button 
               type="submit" 
@@ -178,6 +226,3 @@ const WfhButton = () => {
 };
 
 export default WfhButton;
-
-
-
