@@ -29,7 +29,7 @@ const AuditLog = () => {
   // Fetch audit logs
   useEffect(() => {
     const fetchAuditLogs = async () => {
-      const response = await fetch('http://localhost:5006/audit_log');
+      const response = await fetch('http://127.0.0.1:5006/audit_log');
       const data = await response.json();
       setAuditLogs(data);
       setFilteredLogs(data); // Initially, all logs are displayed
@@ -93,6 +93,9 @@ const AuditLog = () => {
         <Table style={{ width: '100%' }}>
           <TableHead>
             <TableRow>
+            <StyledTableCell>
+                Request ID
+              </StyledTableCell>
               <StyledTableCell>
                 <TableSortLabel
                   active={sortBy === 'action'}
@@ -101,6 +104,9 @@ const AuditLog = () => {
                 >
                   Action
                 </TableSortLabel>
+              </StyledTableCell>
+              <StyledTableCell>
+                Requester Email
               </StyledTableCell>
               <StyledTableCell>
                 <TableSortLabel
@@ -121,7 +127,9 @@ const AuditLog = () => {
           <TableBody>
             {filteredLogs.map((log) => (
               <TableRow key={log.log_id}>
+                <TableCell>{log.request_id}</TableCell>
                 <TableCell>{log.action}</TableCell>
+                <TableCell>{log.requester_email}</TableCell>
                 <TableCell>{log.approver_id}</TableCell>
                 <TableCell>{log.approver_email}</TableCell>
                 <TableCell>{new Date(log.action_timestamp).toLocaleString()}</TableCell>
