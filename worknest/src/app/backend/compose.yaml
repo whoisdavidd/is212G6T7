@@ -83,7 +83,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5006:5000"  
+      - "5006:5006"  
     restart: always
     networks:
       - worknest_default
