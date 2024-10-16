@@ -162,6 +162,37 @@ export default function FullFeaturedCrudGrid() {
     }
   };
 
+  const renderActions = (params) => {
+    const { status, request_id, staff_id } = params.row;
+    const role = sessionStorage.getItem('role');
+    const currentStaffId = sessionStorage.getItem('staff_id');
+
+    const isAuthorized = (role == 2 && staff_id == currentStaffId) || role == 3; // Staff or Manager
+
+    return (
+      <div>
+        {isAuthorized && status === 'Pending' && (
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => handleCancelClick(request_id)}
+          >
+            Cancel
+          </Button>
+        )}
+        {isAuthorized && status === 'Approved' && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => handleWithdrawClick(request_id)}
+          >
+            Withdraw
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       <WfhButton />
@@ -172,6 +203,7 @@ export default function FullFeaturedCrudGrid() {
           pageSize={5}
           rowsPerPageOptions={[5]}
           getRowId={(row) => `${row.staff_id}-${row.start_date}`} // Ensure uniqueness
+          renderCell={renderActions}
         />
       </Box>
       <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />

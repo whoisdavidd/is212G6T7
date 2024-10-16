@@ -202,6 +202,37 @@ const ManagerTable = () => {
         return new Date(dateString).toLocaleDateString(undefined, options);
     };
 
+    const renderActions = (params) => {
+        const { status, request_id, staff_id } = params.row;
+        const role = sessionStorage.getItem('role');
+        const currentStaffId = sessionStorage.getItem('staff_id');
+
+        const isAuthorized = (role == 2 && staff_id == currentStaffId) || role == 3; // Staff or Manager
+
+        return (
+            <div>
+                {isAuthorized && status === 'Pending' && (
+                    <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => handleCancelClick(request_id)}
+                    >
+                        Cancel
+                    </Button>
+                )}
+                {isAuthorized && status === 'Approved' && (
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => handleWithdrawClick(request_id)}
+                    >
+                        Withdraw
+                    </Button>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="table-container">
             {error && (
@@ -286,6 +317,7 @@ const ManagerTable = () => {
                                 <TableCell>{employee.work_location || 'N/A'}</TableCell>
                                 <TableCell>{formatDate(employee.from_date) || 'N/A'}</TableCell>
                                 <TableCell>{formatDate(employee.to_date) || 'N/A'}</TableCell>
+                                <TableCell align="right">{renderActions(employee)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

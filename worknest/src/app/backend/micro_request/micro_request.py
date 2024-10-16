@@ -17,7 +17,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')  # Use environmen
 
 CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  # Replace with your frontend's URL
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Worknest1234!@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -403,20 +403,6 @@ def add_request():
 
 @app.route('/requests/<int:request_id>/withdraw', methods=['PUT'])
 def withdraw_request(request_id):
-    """
-    Withdraw a request
-    ---
-    responses:
-      200:
-        description: Request withdrawn successfully
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-      500:
-        description: Failed to withdraw request
-    """
     logger.info(f"[PUT] /requests/{request_id}/withdraw - Received request to withdraw request with request_id {request_id}.")
     try:
         role = request.headers.get('X-Role')
@@ -430,43 +416,37 @@ def withdraw_request(request_id):
         role = int(role)
         client_staff_id = int(client_staff_id)
 
-        if role == 2:
-            request_obj = RequestModel.query.filter_by(
-                request_id=request_id, staff_id=client_staff_id, status='pending'
-            ).first()
-            if not request_obj:
-                logger.warning(f"[PUT] /requests/{request_id}/withdraw - Unauthorized withdrawal attempt for request_id {request_id} by staff_id {client_staff_id}.")
-                return jsonify({'message': 'Unauthorized to withdraw this request or request already processed.'}), 403
-        elif role == 1:
-            request_obj = RequestModel.query.filter_by(
-                request_id=request_id, status='pending', department=manager_department
-            ).first()
-            if not request_obj:
-                logger.warning(f"[PUT] /requests/{request_id}/withdraw - Request not found or unauthorized withdrawal attempt for request_id {request_id} by manager in department {manager_department}.")
-                return jsonify({'message': 'Request not found, already processed, or not within your department.'}), 404
+        request_obj = RequestModel.query.get(request_id)
+        if not request_obj:
+            logger.warning(f"[PUT] /requests/{request_id}/withdraw - Request with request_id {request_id} not found.")
+            return jsonify({'message': 'Request not found.'}), 404
+
+        # Authorization logic
+        if (role == 2 and request_obj.staff_id == client_staff_id) or \
+           (role == 1 and request_obj.reporting_manager_id == client_staff_id) or \
+           (role == 1 and request_obj.department == manager_department) or \
+           (role == 3):  # HR can withdraw any request
+            request_obj.status = 'Withdrawn'
+            db.session.commit()
+
+            schedule_update_url = "http://localhost:5004/schedules"
+            schedule_update_data = {
+                'staff_id': request_obj.staff_id,
+                'date': request_obj.start_date,
+                'department': request_obj.department,
+                'status': request_obj.status
+            }
+
+            response = requests.post(schedule_update_url, json=schedule_update_data)
+            if response.status_code != 200:
+                logger.error(f"[PUT] /requests/{request_id}/withdraw - Schedule microservice responded with status code {response.status_code}")
+                return jsonify({'message': 'Request withdrawn, but failed to update schedule.'}), 500
+
+            logger.info(f"[PUT] /requests/{request_id}/withdraw - Successfully withdrawn request with request_id {request_id}.")
+            return jsonify({'message': 'Request withdrawn successfully.'}), 200
         else:
-            logger.warning(f"[PUT] /requests/{request_id}/withdraw - Invalid role provided.")
-            return jsonify({'message': 'Invalid role.'}), 400
-
-        request_obj.status = 'Withdrawn'
-        db.session.commit()
-
-        # Correct the endpoint URL
-        schedule_update_url = "http://localhost:5004/schedules"
-        schedule_update_data = {
-            'staff_id': request_obj.staff_id,
-            'date': request_obj.start_date,
-            'department': request_obj.department,
-            'status': request_obj.status
-        }
-
-        response = requests.post(schedule_update_url, json=schedule_update_data)
-        if response.status_code != 200:
-            logger.error(f"[PUT] /requests/{request_id}/withdraw - Schedule microservice responded with status code {response.status_code}")
-            return jsonify({'message': 'Request withdrawn, but failed to update schedule.'}), 500
-
-        logger.info(f"[PUT] /requests/{request_id}/withdraw - Successfully withdrawn request with request_id {request_id}.")
-        return jsonify({'message': 'Request withdrawn successfully.'}), 200
+            logger.warning(f"[PUT] /requests/{request_id}/withdraw - Unauthorized withdrawal attempt for request_id {request_id}.")
+            return jsonify({'message': 'Unauthorized to withdraw this request.'}), 403
 
     except Exception as e:
         logger.error(f"[PUT] /requests/{request_id}/withdraw - Error withdrawing request: {str(e)}")
@@ -505,21 +485,19 @@ def cancel_request(request_id):
         role = int(role)
         client_staff_id = int(client_staff_id)
 
-        # Use Session.get() instead of Query.get()
-        with db.session() as session:
-            request_obj = session.get(RequestModel, request_id)
-            if not request_obj:
-                logger.warning(f"[PUT] /requests/{request_id}/cancel - Unauthorized cancellation attempt for request_id {request_id}.")
-                return jsonify({'message': 'Unauthorized to cancel this request or request already processed.'}), 403
+        request_obj = RequestModel.query.get(request_id)
+        if not request_obj:
+            logger.warning(f"[PUT] /requests/{request_id}/cancel - Request with request_id {request_id} not found.")
+            return jsonify({'message': 'Request not found.'}), 404
 
-            if role == 1 and request_obj.department != manager_department:
-                logger.warning(f"[PUT] /requests/{request_id}/cancel - Request not found or unauthorized cancellation attempt for request_id {request_id} by manager in department {manager_department}.")
-                return jsonify({'message': 'Request not found, already processed, or not within your department.'}), 404
-
+        # Authorization logic
+        if (role == 2 and request_obj.staff_id == client_staff_id) or \
+           (role == 3 and request_obj.reporting_manager_id == client_staff_id) or \
+           (role == 1 and request_obj.department == manager_department) or \
+           (role == 0):  # Assuming role 0 is the top-level manager
             request_obj.status = 'Cancelled'
-            session.commit()
+            db.session.commit()
 
-            # Correct the endpoint URL
             schedule_update_url = "http://localhost:5004/schedules"
             schedule_update_data = {
                 'staff_id': request_obj.staff_id,
@@ -535,6 +513,9 @@ def cancel_request(request_id):
 
             logger.info(f"[PUT] /requests/{request_id}/cancel - Successfully canceled request with request_id {request_id}.")
             return jsonify({'message': 'Request canceled successfully.'}), 200
+        else:
+            logger.warning(f"[PUT] /requests/{request_id}/cancel - Unauthorized cancellation attempt for request_id {request_id}.")
+            return jsonify({'message': 'Unauthorized to cancel this request.'}), 403
 
     except Exception as e:
         logger.error(f"[PUT] /requests/{request_id}/cancel - Error canceling request: {str(e)}")
@@ -595,29 +576,36 @@ def update_request(request_id):
             logger.warning(f"[PUT] /requests/{request_id} - Request with request_id {request_id} not found.")
             return jsonify({'message': 'Request not found.'}), 404
 
-        if role == 2 and request_obj.staff_id != client_staff_id:
-            logger.warning(f"[PUT] /requests/{request_id} - Unauthorized update attempt for request_id {request_id} by staff_id {client_staff_id}.")
+        # Authorization logic
+        if (role == 2 and request_obj.staff_id == client_staff_id) or \
+           (role == 3 and request_obj.reporting_manager_id == client_staff_id) or \
+           (role == 1 and request_obj.department == client_department) or \
+           (role == 0):  # Assuming role 0 is the top-level manager
+            data = request.get_json()
+            request_obj.start_date = data['start_date']
+            request_obj.duration = data['duration']
+            request_obj.reason = data['reason']
+
+            if request_obj.status == 'Approved' and data.get('status') == 'Pending':
+                request_obj.status = 'Pending'
+
+            db.session.commit()
+            logger.info(f"[PUT] /requests/{request_id} - Successfully updated request with request_id {request_id}.")
+            return jsonify({'message': 'Request updated successfully.', 'request': request_obj.to_dict()}), 200
+        else:
+            logger.warning(f"[PUT] /requests/{request_id} - Unauthorized update attempt for request_id {request_id}.")
             return jsonify({'message': 'Unauthorized to update this request.'}), 403
-        elif role == 1 and request_obj.department != client_department:
-            logger.warning(f"[PUT] /requests/{request_id} - Unauthorized update attempt for request_id {request_id} by manager in department {client_department}.")
-            return jsonify({'message': 'Unauthorized to update request from different department.'}), 403
-
-        data = request.get_json()
-        request_obj.start_date = data['start_date']
-        request_obj.duration = data['duration']
-        request_obj.reason = data['reason']
-
-        if request_obj.status == 'Approved' and data.get('status') == 'Pending':
-            request_obj.status = 'Pending'
-
-        db.session.commit()
-        logger.info(f"[PUT] /requests/{request_id} - Successfully updated request with request_id {request_id}.")
-        return jsonify({'message': 'Request updated successfully.', 'request': request_obj.to_dict()}), 200
 
     except Exception as e:
         logger.error(f"[PUT] /requests/{request_id} - Error updating request: {str(e)}")
         db.session.rollback()
         return jsonify({'message': f'Error updating request: {str(e)}'}), 500
+
+# Helper function to check if a manager is a direct manager or superior
+def is_manager_or_superior(manager_id, staff_id):
+    # Implement logic to check if the manager_id is a direct manager or superior of staff_id
+    # This might involve querying a database or another service
+    return True  # Placeholder logic
 
 if __name__ == '__main__':
     app.run(port=5003, debug=True)
