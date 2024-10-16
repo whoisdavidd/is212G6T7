@@ -17,7 +17,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')  # Use environmen
 
 CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  # Replace with your frontend's URL
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Worknest1234!@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
