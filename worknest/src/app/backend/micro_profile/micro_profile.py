@@ -303,7 +303,8 @@ def authentication():
                     "department": user.department,
                     "position": user.position,
                     'role': user.role,
-                    'staff_id': user.staff_id
+                    'staff_id': user.staff_id,
+                    'manager_id': user.reporting_manager_id
                 }
             }), 200
         logger.warning(f"Invalid credentials for user {email}.")

@@ -175,7 +175,7 @@ def get_staff_requests(staff_id):
         staff_requests = RequestModel.query.filter_by(staff_id=staff_id).all()
         if not staff_requests:
             logger.warning(f"[GET] /requests/{staff_id} - No requests found for staff_id {staff_id}.")
-            return jsonify({'message': 'No requests found for this staff member.'}), 404
+            return jsonify([]), 200  # Return an empty array
         logger.info(f"[GET] /requests/{staff_id} - Successfully fetched {len(staff_requests)} requests for staff_id {staff_id}.")
         return jsonify([request.to_dict() for request in staff_requests]), 200
     except Exception as e:
@@ -290,7 +290,7 @@ def get_manager_requests(manager_id):
         for request in team_requests:
             staff_profile = next((member for member in team_members if member['staff_id'] == request.staff_id), None)
             if staff_profile:
-                from_date = datetime.strptime(request.start_date, '%Y-%m-%d')
+                from_date = request.start_date
                 to_date = calculate_to_date(from_date, request.duration)
                 team_requests_data.append({
                     'request_id': request.request_id,
@@ -315,15 +315,7 @@ def get_manager_requests(manager_id):
 
 def calculate_to_date(from_date, duration):
     try:
-        if 'day' in duration:
-            days = int(duration.split()[0])
-            return from_date + timedelta(days=days)
-        elif 'hour' in duration:
-            hours = int(duration.split()[0])
-            return from_date + timedelta(hours=hours)
-        else:
-            logger.warning(f"[CALCULATE] - Unknown duration format: {duration}")
-            return from_date
+            return from_date + timedelta(days=duration)
     except Exception as e:
         logger.error(f"[CALCULATE] - Error calculating to_date: {str(e)}")
         return from_date
@@ -380,7 +372,7 @@ def add_request():
         data = request.get_json()
         start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
         end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-        duration = (end_date - start_date).days
+        duration = (end_date - start_date).days + 1
 
         if duration < 0:
             logger.warning("[POST] /requests - End date is before start date.")

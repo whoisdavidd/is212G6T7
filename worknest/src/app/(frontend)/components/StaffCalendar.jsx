@@ -2,70 +2,101 @@ import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { Button, ButtonGroup } from '@mui/material';
 
 export default function StaffCalendar() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewType, setViewType] = useState('personal'); // 'personal' or 'team'
 
-  // Fetch requests for the staff member from Flask API
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const response = await fetch(`http://localhost:5003/requests`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch requests');
-        }
-        const data = await response.json();
+  const fetchRequests = async (type) => {
+    try {
+      const staffId = sessionStorage.getItem('staff_id');
+      const managerId = sessionStorage.getItem('manager_id');
+      const url = type === 'personal'
+        ? `http://localhost:5003/requests/${staffId}`
+        : `http://localhost:5003/manager_requests/${managerId}`;
 
-        // Map requests to events format for FullCalendar
-        const mappedEvents = data
-          .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled')
-          .map(request => {
-            const date = new Date(request.start_date);
-            const formattedDate = date.toISOString().split('T')[0];
-            return {
-              id: String(request.staff_id),
-              title: `${request.reason} - ${request.status}`,
-              start: formattedDate,
-              end: formattedDate,
-              extendedProps: {
-                type: request.reason.toLowerCase() === 'wfh' ? 'wfh' : 'general',
-                status: request.status
-              }
-            };
-          });
+      const response = await fetch(url);
+      const data = await response.json();
 
-        setEvents(mappedEvents);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching requests:', error);
-        setError(error.message);
-        setLoading(false);
+      console.log('Fetched data:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch requests');
       }
-    };
 
-    fetchRequests();
-  }, []);
+      if (!Array.isArray(data)) {
+        throw new Error('Expected an array of requests');
+      }
+
+      const mappedEvents = data
+        .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled')
+        .map(request => {
+          const startDateStr = type === 'personal' ? request.start_date : request.from_date;
+          const endDateStr = type === 'personal' ? request.start_date : request.to_date;
+
+          if (!startDateStr || !endDateStr) {
+            console.error('Missing date:', request);
+            return null;
+          }
+
+          const startDate = new Date(startDateStr);
+          const endDate = new Date(endDateStr);
+
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.error('Invalid date:', startDateStr, endDateStr);
+            return null;
+          }
+
+          return {
+            id: String(request.staff_id),
+            title: `${request.reason || request.work_location} - ${request.status}`,
+            start: startDate.toISOString().split('T')[0],
+            end: endDate.toISOString().split('T')[0],
+            extendedProps: {
+              type: (request.reason || request.work_location).toLowerCase() === 'wfh' ? 'wfh' : 'general',
+              status: request.status
+            }
+          };
+        })
+        .filter(event => event !== null); // Filter out invalid events
+
+      setEvents(mappedEvents);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      setError(error.message);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests(viewType);
+  }, [viewType]);
 
   if (loading) return <div>Loading requests...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
     <>
+      <ButtonGroup variant="contained" aria-label="outlined primary button group">
+        <Button onClick={() => setViewType('personal')}>Personal Schedule</Button>
+        <Button onClick={() => setViewType('team')}>Team Schedule</Button>
+      </ButtonGroup>
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         contentHeight="auto"
         events={events}
-        eventContent={renderEventContent} // Render custom event content
+        eventContent={renderEventContent}
       />
+      {events.length === 0 && <div>No requests found.</div>}
     </>
   );
 }
 
-// Render event content in the calendar
 function renderEventContent(eventInfo) {
   const { event } = eventInfo;
   const isWfh = event.extendedProps.type === 'wfh';

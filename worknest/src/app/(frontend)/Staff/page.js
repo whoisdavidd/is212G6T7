@@ -6,25 +6,21 @@ import StaffSchedule from '../components/StaffSchedule';
 
 import Stack from '@mui/material/Stack';
 
-
 function Staff() {
   return (
     <div className="App">
       <ResponsiveAppBar />
 
-      <Stack spacing={2} alignItems="center"> {/* Centered alignment for the column layout */}
-        <Stack sx={{ width: '100%', height: '400px', overflow: 'auto' }}> {/* Fixed height for calendar */}
+      <Stack spacing={2} alignItems="center">
+        <Stack sx={{ width: '100%', height: '400px', overflow: 'auto' }}>
           <StaffCalendar />
         </Stack>
-        <Stack sx={{ width: '100%' }}> {/* Schedule takes full width */}
+        <Stack sx={{ width: '100%' }}>
           <StaffSchedule />
         </Stack>
       </Stack>
-      {/* <Summary /> */}
     </div>
   );
 }
 
 export default Staff;
-
-
