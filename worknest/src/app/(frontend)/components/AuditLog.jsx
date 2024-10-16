@@ -94,7 +94,13 @@ const AuditLog = () => {
           <TableHead>
             <TableRow>
             <StyledTableCell>
-                Request ID
+              <TableSortLabel
+                    active={sortBy === 'request_id'}
+                    direction={sortBy === 'request_id' ? sortDirection : 'asc'}
+                    onClick={() => handleSort('request_id')}
+                  >
+                    Request ID
+                </TableSortLabel>
               </StyledTableCell>
               <StyledTableCell>
                 <TableSortLabel
