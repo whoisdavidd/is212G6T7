@@ -64,7 +64,7 @@ services:
 
   micro_notification:
     build:
-      context: ./micro_notification  # Updated to micro_notification folder
+      context: ./micro_notification  
     command: python notification.py
     depends_on:
       - rabbitmq
@@ -76,14 +76,14 @@ services:
 
   micro_approval:
     build:
-      context: ./micro_approval  # Updated to micro_approval folder
+      context: ./micro_approval 
     command: python approval_service.py
     depends_on:
       - rabbitmq
     environment:
       - FLASK_ENV=development
     ports:
-      - "5006:5000"  # Exposing approval service on port 5005
+      - "5006:5006"  
     restart: always
     networks:
       - worknest_default

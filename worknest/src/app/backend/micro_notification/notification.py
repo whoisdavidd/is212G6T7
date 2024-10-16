@@ -16,15 +16,21 @@ def callback(ch, method, properties, body):
     requester_email = message['email']
     approver_email = message['approver_email']
     wfh_date = message['wfh_date']
-    approver_comment = approver_comment['approver_comment']
+    approver_comment = message['approver_comment']
+    duration = message['duration']
     
-    # Prepare the email content for the requester based on the action
     if action == 'approved':
         requester_subject = "WFH Request Approved"
-        requester_body = f"Congratulations! Your request for WFH on {wfh_date} has been approved. Comments: {approver_comment}"
+        requester_body = (
+            f"Congratulations! Your request for WFH on {wfh_date} has been approved for a duration of {duration} days.\n"
+            f"\nComments: {approver_comment}"
+        )
     else:  # action == 'rejected'
         requester_subject = "WFH Request Rejected"
-        requester_body = f"Unfortunately, your request for WFH on {wfh_date} has been rejected. Comments: {approver_comment}"
+        requester_body = (
+            f"Unfortunately, your request for WFH on {wfh_date} has been rejected for a duration of {duration} days.\n"
+            f"\nComments: {approver_comment}"
+        )
 
     # Prepare the email content for the approver based on the action
     if action == 'approved':
