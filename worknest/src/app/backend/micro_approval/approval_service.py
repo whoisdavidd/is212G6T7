@@ -1,4 +1,4 @@
-# handles the logic for approval/rejection 
+# handles the logic for approval/rejection + audit log 
 from flask import Flask, request, jsonify
 import pika
 import json
@@ -6,19 +6,18 @@ import logging
 from flask_cors import CORS
 import os
 from flask_sqlalchemy import SQLAlchemy
-import requests
 from dotenv import load_dotenv
 from datetime import datetime
-import audit_log
 
 load_dotenv()  # Load environment variables from .env file
 
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')  # This should read from your .env file
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = os.getenv('SECRET_KEY')  # Replace with a secure key
 db =SQLAlchemy(app)
 class RequestModel(db.Model):
     __tablename__ = "request"
@@ -27,7 +26,7 @@ class RequestModel(db.Model):
     department = db.Column(db.String(50), nullable=False)
     start_date = db.Column(db.String(50), nullable=False)
     reason = db.Column(db.String(50), nullable=False)
-    duration = db.Column(db.String(50), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), nullable=False)
     reporting_manager_id = db.Column(db.Integer)
     reporting_manager_name = db.Column(db.String(50))
@@ -76,26 +75,44 @@ class AuditLogModel(db.Model):
 
     log_id = db.Column(db.Integer, primary_key=True)  # Primary key
     request_id = db.Column(db.Integer, nullable=False)  # Foreign key to the request table
+    requester_email = db.Column(db.String(50), nullable = False)
     action = db.Column(db.String(50), nullable=False)  # Action performed (e.g., 'approved' or 'rejected')
     approver_id = db.Column(db.Integer, nullable=False)  # ID of the approver
     approver_email = db.Column(db.String(50), nullable=False)  # Email of the approver
     action_timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())  # Auto log time
     start_date = db.Column(db.Date, nullable=False)  # Start date of the request being approved/rejected
-    duration = db.Column(db.String(50), nullable=False)  # Duration of the request
+    duration = db.Column(db.Integer, nullable=False)
+    department = db.Column(db.String(50), nullable=False)
 
-    def __init__(self, request_id, action, approver_id, approver_email, start_date, duration):
+    def __init__(self, request_id, requester_email, action, approver_id, approver_email, start_date, duration, department):
         self.request_id = request_id
+        self.requester_email = requester_email
         self.action = action
         self.approver_id = approver_id
         self.approver_email = approver_email
         self.start_date = start_date
         self.duration = duration
+        self.department = department
 
     def save_to_db(self):
         db.session.add(self)
         db.session.commit()
+    
+    def to_dict(self):
+        return {
+            'log_id': self.log_id,
+            'request_id': self.request_id,
+            'requester_email': self.requester_email,  # Include requester_email in the dictionary
+            'action': self.action,
+            'approver_id': self.approver_id,
+            'approver_email': self.approver_email,
+            'action_timestamp': self.action_timestamp.isoformat(),  # Convert to string for JSON serialization
+            'start_date': self.start_date.isoformat(),  # Convert to string for JSON serialization
+            'duration': self.duration,
+            'department': self.department
+        }
  
-def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, approver_comment):
+def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, approver_comment, duration):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
     channel = connection.channel()
     
@@ -108,7 +125,8 @@ def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, app
         'email': requester_email,
         'approver_email': approver_email,
         'wfh_date': wfh_date,
-        'approver_comment': approver_comment
+        'approver_comment': approver_comment, 
+        'duration': duration
     }
     
     # Publish the message to the queue
@@ -127,67 +145,66 @@ def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, app
 def approve_request():
     logging.info("Received POST request on /approve_request")
     data = request.json
-    logging.info(f"Received approval request: {data}")
-    request_id = data['request_id']
-    approver_id = data['approver_id']
-    approver_email = data['approver_email']
-    wfh_date = data['wfh_date']
-    duration = int(data.get('duration', 1))  # Get duration (number of days)
-    approver_comment = data.get('approver_comment', '')
-
-  # Fetch the request from the database
-    request_record = RequestModel.query.filter_by(request_id=request_id).first()
-
-    if not request_record:
-        return jsonify({'status': 'Request not found'}), 404
-
-    # Logic to update the status to "Approved" and handle recurring requests
-    recurring_days = request_record.recurring_days
-    if recurring_days:
-        for day in recurring_days:
-            # Approve each recurring day (in this case just an example, modify as per logic)
-            logging.info(f"Approving recurring request for day: {day}")
-            update_request_status(request_id, 'Approved', approver_id, approver_comment, wfh_date, day)
-    else:
-        # Single request approval
-        update_request_status(request_id, 'Approved', approver_id, approver_comment, wfh_date)
-
-    # Log the approval in the audit log
-    create_audit_log(request_id, 'approved', approver_id, approver_email, request_record.start_date, request_record.duration)
-
-    # Notify the requester via RabbitMQ
-    send_rabbitmq_message('approved', data['requester_email'], approver_email, wfh_date, approver_comment)
     
-    return jsonify({'status': 'Request approved'}), 200
-
-@app.route('/reject_request', methods=['POST'])
-def reject_request():
-    data = request.json
-    logging.info(f"Received rejection request: {data}")
+    # Extract required data from the request
     request_id = data['request_id']
     approver_id = data['approver_id']
-    approver_email = data['approver_email']
-    wfh_date = data['wfh_date']
     approver_comment = data.get('approver_comment', '')
+    duration = data['duration']
 
     # Fetch the request from the database
     request_record = RequestModel.query.filter_by(request_id=request_id).first()
-
     if not request_record:
         return jsonify({'status': 'Request not found'}), 404
 
-    # Logic to update the status to "Rejected"
-    update_request_status(request_id, 'Rejected', approver_id, approver_comment, wfh_date)
+    # Update the status to "Approved" and set the approver's comment and duration
+    recurring_days = request_record.recurring_days
+    if recurring_days:
+        for day in recurring_days:
+            logging.info(f"Approving recurring request for day: {day}")
+            update_request_status(request_id, 'Approved', approver_id, approver_comment, duration)
+    else:
+        update_request_status(request_id, 'Approved', approver_id, approver_comment,duration)
+
+    # Log the approval in the audit log
+    create_audit_log(request_id, request_record.requester_email, 'approved', approver_id, request_record.reporting_manager_email, request_record.start_date.isoformat(), duration, request_record.department)
+
+    # Send RabbitMQ messages
+    send_rabbitmq_message('approved', request_record.requester_email, request_record.reporting_manager_email, request_record.start_date.isoformat(), approver_comment, request_record.duration)
+
+    return jsonify({'status': 'Request approved'}), 200
+
+
+
+@app.route('/reject_request', methods=['POST'])
+def reject_request():
+    logging.info("Received POST request on /reject_request")
+    data = request.json
+    
+    # Extract required data from the request
+    request_id = data['request_id']
+    approver_id = data['approver_id']
+    approver_comment = data.get('approver_comment', '')
+    # recurring_days = data.get('recurring_days')
+    duration = data['duration']
+
+    # Fetch the request from the database
+    request_record = RequestModel.query.filter_by(request_id=request_id).first()
+    if not request_record:
+        return jsonify({'status': 'Request not found'}), 404
+
+    # Update the status to "Rejected"
+    update_request_status(request_id, 'Rejected', approver_id, approver_comment, duration)
 
     # Log the rejection in the audit log
-    create_audit_log(request_id, 'rejected', approver_id, approver_email, request_record.start_date, request_record.duration)
+    create_audit_log(request_id, request_record.requester_email, 'rejected', approver_id, request_record.reporting_manager_email, request_record.start_date.isoformat(), duration, request_record.department)
 
-    # Notify the requester via RabbitMQ
-    send_rabbitmq_message('rejected', data['requester_email'], approver_email, wfh_date, approver_comment)
+    # Send RabbitMQ messages
+    send_rabbitmq_message('rejected', request_record.requester_email, request_record.reporting_manager_email, request_record.start_date.isoformat(), approver_comment, request_record.duration)
 
     return jsonify({'status': 'Request rejected'}), 200
 
-def update_request_status(request_id, new_status, approver_id, approver_comment, wfh_date, day=None):
+def update_request_status(request_id, new_status, approver_id, approver_comment, duration=None):
     # Query the request by request_id
     request_record = RequestModel.query.filter_by(request_id=request_id).first()
 
@@ -196,22 +213,37 @@ def update_request_status(request_id, new_status, approver_id, approver_comment,
         request_record.status = new_status
         request_record.reporting_manager_id = approver_id
         request_record.approver_comment = approver_comment
-        request_record.start_date = wfh_date if not day else f"{wfh_date} (Day {day})"
         
+        # Update the duration only if provided
+        if duration is not None:
+            request_record.duration = duration  # Adjust the duration if needed
+
+        # Handle recurring days if they exist
+        recurring_days = request_record.recurring_days
+        if recurring_days:
+            # Example: Update recurring days logic (this could vary based on your requirements)
+            # Here we are just logging the recurring days for demonstration
+            logging.info(f"Updating recurring request for days: {recurring_days}")
+            # You might want to implement specific logic to handle the recurring days
+
         # Commit the changes
         db.session.commit()
         return True
     else:
         return False
 
-def create_audit_log(request_id, action, approver_id, approver_email, start_date, duration):
+
+
+def create_audit_log(request_id, requester_email, action, approver_id, approver_email, start_date, duration, department):
     new_log = AuditLogModel(
         request_id=request_id,
+        requester_email=requester_email,
         action=action,
         approver_id=approver_id,
         approver_email=approver_email,
         start_date=start_date,  # Log the specific WFH start date
-        duration=duration  # Log the duration of the WFH request
+        duration=duration,  # Log the duration of the WFH request
+        department = department
     )
     db.session.add(new_log)
     db.session.commit()
