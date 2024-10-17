@@ -602,11 +602,13 @@ CREATE TABLE request (
     department VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,               -- Using DATE for storing dates
     reason VARCHAR(50) NOT NULL,
-    duration VARCHAR(50) NOT NULL,
+    duration INT NOT NULL,
     status VARCHAR(50) NOT NULL,
-    reporting_manager_id INT,
-    reporting_manager_name VARCHAR(50),
-    day_id SERIAL NOT NULL,
+    reporting_manager_id INT NOT NULL,
+    reporting_manager_name VARCHAR(50) NOT NULL,
+    reporting_manager_email VARCHAR(50) NOT NULL,  -- Added field for approver email -- easier to retrieve for sending of emails
+    requester_email VARCHAR(50) NOT NULL,          -- Added field for requester email
+    day_id SERIAL,
     recurring_days INT[],
     approver_comment VARCHAR(50)
 );
@@ -616,4 +618,17 @@ CREATE table schedule(
     date DATE NOT NULL,
     department VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE audit_log (
+    log_id SERIAL PRIMARY KEY,
+    request_id INT NOT NULL,
+    requester_email VARCHAR(50) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    approver_id INT NOT NULL,
+    approver_email VARCHAR(50) NOT NULL,
+    action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    start_date DATE NOT NULL, -- The specific date being approved or rejected
+    duration VARCHAR(50) NOT NULL, 
+    department VARCHAR(50) NOT NULL 
 );

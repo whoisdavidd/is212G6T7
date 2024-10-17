@@ -17,32 +17,36 @@ const ManagerTable = () => {
     const [sortConfig, setSortConfig] = useState({ key: 'staff_fname', direction: 'asc' });
     const [filters, setFilters] = useState({
         name: '',
-        role: '',
+        position: '',
         workLocation: '',
-        from: '',
-        to: '',
+        country: ''
     });
     const [employees, setEmployees] = useState([]); // State to hold employee data
+    const [managerId, setManagerId] = useState(null); // State to hold manager ID
+    const [departmentName, setDepartmentName] = useState('Department Name');
 
     // Fetch employee data from the API
     useEffect(() => {
+        const storedManagerId = 140879;  // Set dynamically or from localStorage
+        setManagerId(storedManagerId);
+
         const fetchEmployees = async () => {
             try {
-                const response = await fetch("http://127.0.0.1:5002/test", {
+                const response = await fetch(`http://127.0.0.1:5002/managers/${storedManagerId}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json"
                     }
                 });
 
-                // Ensure we have a valid response
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
                 if (data.code === 200) {
-                    setEmployees(data.data.employees);  // Expecting `data.data.employees`
+                    setEmployees(data.data.employees);  // Now the data is coming from data.data.employees
+                    setDepartmentName(data.data.department);
                 } else {
                     console.error("Failed to fetch employees:", data.message);
                 }
@@ -51,7 +55,9 @@ const ManagerTable = () => {
             }
         };
 
-        fetchEmployees();
+        if (storedManagerId) {
+            fetchEmployees();
+        }
     }, []);
 
     const handleSort = (column) => {
@@ -60,6 +66,11 @@ const ManagerTable = () => {
     };
 
     const sortedEmployees = [...employees].sort((a, b) => {
+        // Ensure WFH employees are sorted at the top
+        if (a.location === 'WFH' && b.location !== 'WFH') return -1;
+        if (a.location !== 'WFH' && b.location === 'WFH') return 1;
+
+        // After sorting by WFH, apply regular sorting based on the selected column
         if (a[sortConfig.key] < b[sortConfig.key]) {
             return sortConfig.direction === 'asc' ? -1 : 1;
         }
@@ -69,33 +80,12 @@ const ManagerTable = () => {
         return 0;
     });
 
-    // Helper function to format date as YYYY-MM-DD
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-    
-        // Check if the date is valid
-        if (isNaN(date.getTime())) {
-            console.error('Invalid date:', dateString);
-            return 'Invalid Date'; // You can return 'Invalid Date' or handle it differently
-        }
-    
-        // Extract YYYY-MM-DD from the ISO string
-        return date.toISOString().split('T')[0];
-    };
-
     const filteredEmployees = sortedEmployees.filter(employee => {
-        const employeeFromDate = new Date(employee.from).getTime();  // Convert to timestamp for comparison
-        const employeeToDate = new Date(employee.to).getTime();
-
-        const filterFromDate = filters.from ? new Date(filters.from).getTime() : null;
-        const filterToDate = filters.to ? new Date(filters.to).getTime() : null;
-
         return (
             (filters.name ? `${employee.staff_fname} ${employee.staff_lname}`.toLowerCase().includes(filters.name.toLowerCase()) : true) &&
-            (filters.role ? employee.role.toLowerCase().includes(filters.role.toLowerCase()) : true) &&
-            (filters.workLocation ? employee.country.toLowerCase().includes(filters.workLocation.toLowerCase()) : true) &&
-            (filterFromDate ? employeeFromDate >= filterFromDate : true) &&  // Compare timestamps
-            (filterToDate ? employeeToDate <= filterToDate : true)  // Compare timestamps
+            (filters.position ? employee.position.toLowerCase().includes(filters.position.toLowerCase()) : true) &&
+            (filters.workLocation ? employee.location.toLowerCase().includes(filters.workLocation.toLowerCase()) : true) &&
+            (filters.country ? employee.country.toLowerCase().includes(filters.country.toLowerCase()) : true)
         );
     });
 
@@ -109,14 +99,12 @@ const ManagerTable = () => {
     const handleClearFilters = () => {
         setFilters({
             name: '',
-            role: '',
+            position: '',
             workLocation: '',
-            from: '',
-            to: '',
+            country: '',
         });
     };
 
-    // Define filterOptions here
     const filterOptions = [
         {
             key: 'name',
@@ -126,38 +114,34 @@ const ManagerTable = () => {
             fullWidth: true,
         },
         {
-            key: 'role',
-            label: 'Role',
-            options: [...new Set(employees.map(employee => employee.role))],
-            value: filters.role,
+            key: 'position',
+            label: 'Position',
+            options: [...new Set(employees.map(employee => employee.position))],
+            value: filters.position,
             fullWidth: true,
         },
         {
             key: 'workLocation',
             label: 'Work Location',
-            options: [...new Set(employees.map(employee => employee.country))],
+            options: [...new Set(employees.map(employee => employee.location))],
             value: filters.workLocation,
             fullWidth: true,
         },
         {
-            key: 'from',
-            label: 'From Date',
-            options: [],
-            value: filters.from,
-            fullWidth: false,
-            type: 'date',
-        },
-        {
-            key: 'to',
-            label: 'To Date',
-            options: [],
-            value: filters.to,
-            fullWidth: false,
-            type: 'date',
-        },
+            key: 'country',
+            label: 'Country',
+            options: [...new Set(employees.map(employee => employee.country))],
+            value: filters.country,
+            fullWidth: true,
+        }
     ];
 
     return (
+        <>
+        <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
+        Employees ({departmentName})
+        </h3>
+
         <div className="table-container">
             <FilterForm filters={filterOptions} onFilterChange={handleFilterChange} />
             <Button 
@@ -189,11 +173,20 @@ const ManagerTable = () => {
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'role'}
-                                    direction={sortConfig.key === 'role' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('role')}
+                                    active={sortConfig.key === 'position'}
+                                    direction={sortConfig.key === 'position' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('position')}
                                 >
-                                    <strong>Role</strong>
+                                    <strong>Position</strong>
+                                </TableSortLabel>
+                            </TableCell>
+                            <TableCell>
+                                <TableSortLabel
+                                    active={sortConfig.key === 'location'}
+                                    direction={sortConfig.key === 'location' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('location')}
+                                >
+                                    <strong>Work Location</strong>
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
@@ -202,25 +195,7 @@ const ManagerTable = () => {
                                     direction={sortConfig.key === 'country' ? sortConfig.direction : 'asc'}
                                     onClick={() => handleSort('country')}
                                 >
-                                    <strong>Work Location</strong>
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'from'}
-                                    direction={sortConfig.key === 'from' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('from')}
-                                >
-                                    <strong>From</strong>
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'to'}
-                                    direction={sortConfig.key === 'to' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('to')}
-                                >
-                                    <strong>To</strong>
+                                    <strong>Country</strong>
                                 </TableSortLabel>
                             </TableCell>
                         </TableRow>
@@ -229,16 +204,16 @@ const ManagerTable = () => {
                         {filteredEmployees.map((employee) => (
                             <TableRow key={employee.staff_id}>
                                 <TableCell>{`${employee.staff_fname} ${employee.staff_lname}`}</TableCell>
-                                <TableCell>{employee.role}</TableCell>
+                                <TableCell>{employee.position}</TableCell>
+                                <TableCell>{employee.location}</TableCell>
                                 <TableCell>{employee.country}</TableCell>
-                                <TableCell>{formatDate(employee.from)}</TableCell>
-                                <TableCell>{formatDate(employee.to)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </TableContainer>
         </div>
+        </>
     );
 };
 

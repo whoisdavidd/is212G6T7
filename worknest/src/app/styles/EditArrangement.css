@@ -1,0 +1,29 @@
+.edit-arrangement-container {
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.edit-status-section {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.form-control {
+    margin-bottom: 20px;
+    min-width: 300px;
+}
+
+.select-status {
+    background-color: #f0f0f0;
+    border-radius: 5px;
+}
+
+.change-status-btn {
+    background-color: #21005D;
+    color: white;
+    margin-top: 10px;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
