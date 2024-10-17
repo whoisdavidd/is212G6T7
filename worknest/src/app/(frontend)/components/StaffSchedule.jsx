@@ -73,7 +73,7 @@ export default function FullFeaturedCrudGrid() {
                 Cancel
               </Button>
             )}
-            {status === 'approved' && (
+            {status === 'Approved' && (
               <Button
                 variant="contained"
                 color="primary"
@@ -218,7 +218,6 @@ export default function FullFeaturedCrudGrid() {
 
   return (
     <div>
-      <WfhButton />
       <Box sx={{ height: 500, width: '100%' }}>
         <DataGrid
           rows={rows}
