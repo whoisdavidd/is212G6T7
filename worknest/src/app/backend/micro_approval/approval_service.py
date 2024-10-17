@@ -74,25 +74,27 @@ class AuditLogModel(db.Model):
     __tablename__ = 'audit_log'
 
     log_id = db.Column(db.Integer, primary_key=True)  # Primary key
-    request_id = db.Column(db.Integer, nullable=False)  # Foreign key to the request table
+    request_id = db.Column(db.Integer, nullable=False, unique=True)  # Foreign key to the request table
     requester_email = db.Column(db.String(50), nullable = False)
     action = db.Column(db.String(50), nullable=False)  # Action performed (e.g., 'approved' or 'rejected')
-    approver_id = db.Column(db.Integer, nullable=False)  # ID of the approver
+    reporting_manager_id = db.Column(db.Integer, nullable=False)  # ID of the approver
     approver_email = db.Column(db.String(50), nullable=False)  # Email of the approver
     action_timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())  # Auto log time
     start_date = db.Column(db.Date, nullable=False)  # Start date of the request being approved/rejected
     duration = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
+    approver_comment = db.Column(db.String(50))
 
-    def __init__(self, request_id, requester_email, action, approver_id, approver_email, start_date, duration, department):
+    def __init__(self, request_id, requester_email, action, reporting_manager_id, approver_email, start_date, duration, department, approver_comment):
         self.request_id = request_id
         self.requester_email = requester_email
         self.action = action
-        self.approver_id = approver_id
+        self.reporting_manager_id = reporting_manager_id
         self.approver_email = approver_email
         self.start_date = start_date
         self.duration = duration
         self.department = department
+        self.approver_comment = approver_comment
 
     def save_to_db(self):
         db.session.add(self)
@@ -104,13 +106,34 @@ class AuditLogModel(db.Model):
             'request_id': self.request_id,
             'requester_email': self.requester_email,  # Include requester_email in the dictionary
             'action': self.action,
-            'approver_id': self.approver_id,
+            'reporting_manager_id': self.reporting_manager_id,
             'approver_email': self.approver_email,
             'action_timestamp': self.action_timestamp.isoformat(),  # Convert to string for JSON serialization
             'start_date': self.start_date.isoformat(),  # Convert to string for JSON serialization
             'duration': self.duration,
-            'department': self.department
+            'department': self.department,
+            'approver_comment': self.approver_comment
+
         }
+    
+class ScheduleModel(db.Model):
+    __tablename__ = 'schedule'
+    
+    staff_id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    department = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False)
+
+    def __init__(self, staff_id, date, department, status):
+        self.staff_id = staff_id
+        self.date = date
+        self.department = department
+        self.status = status
+
+    
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
  
 def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, approver_comment, duration):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
@@ -141,6 +164,8 @@ def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, app
     
     connection.close()
 
+##### Approve Request #####
+
 @app.route('/approve_request', methods=['POST'])
 def approve_request():
     logging.info("Received POST request on /approve_request")
@@ -148,9 +173,8 @@ def approve_request():
     
     # Extract required data from the request
     request_id = data['request_id']
-    approver_id = data['approver_id']
+    reporting_manager_id = data['reporting_manager_id']
     approver_comment = data.get('approver_comment', '')
-    duration = data['duration']
 
     # Fetch the request from the database
     request_record = RequestModel.query.filter_by(request_id=request_id).first()
@@ -162,19 +186,28 @@ def approve_request():
     if recurring_days:
         for day in recurring_days:
             logging.info(f"Approving recurring request for day: {day}")
-            update_request_status(request_id, 'Approved', approver_id, approver_comment, duration)
+            update_request_status(request_id, 'Approved', reporting_manager_id, approver_comment)
     else:
-        update_request_status(request_id, 'Approved', approver_id, approver_comment,duration)
+        update_request_status(request_id, 'Approved', reporting_manager_id, approver_comment)
 
     # Log the approval in the audit log
-    create_audit_log(request_id, request_record.requester_email, 'approved', approver_id, request_record.reporting_manager_email, request_record.start_date.isoformat(), duration, request_record.department)
+    create_audit_log(request_id, request_record.requester_email, 'Approved', reporting_manager_id, request_record.reporting_manager_email, request_record.start_date.isoformat(), request_record.duration, request_record.department, approver_comment)
 
     # Send RabbitMQ messages
-    send_rabbitmq_message('approved', request_record.requester_email, request_record.reporting_manager_email, request_record.start_date.isoformat(), approver_comment, request_record.duration)
+    send_rabbitmq_message('Approved', request_record.requester_email, request_record.reporting_manager_email, request_record.start_date.isoformat(), approver_comment, request_record.duration)
+       # Create a new entry in the schedule table
+    new_schedule_entry = ScheduleModel(
+        staff_id=request_record.staff_id,
+        date=request_record.start_date,
+        department=request_record.department,
+        status="Approved"
+    )
+    db.session.add(new_schedule_entry)
+    db.session.commit()
 
     return jsonify({'status': 'Request approved'}), 200
 
-
+##### Reject Request #####
 
 @app.route('/reject_request', methods=['POST'])
 def reject_request():
@@ -183,10 +216,8 @@ def reject_request():
     
     # Extract required data from the request
     request_id = data['request_id']
-    approver_id = data['approver_id']
+    reporting_manager_id = data['reporting_manager_id']
     approver_comment = data.get('approver_comment', '')
-    # recurring_days = data.get('recurring_days')
-    duration = data['duration']
 
     # Fetch the request from the database
     request_record = RequestModel.query.filter_by(request_id=request_id).first()
@@ -194,24 +225,24 @@ def reject_request():
         return jsonify({'status': 'Request not found'}), 404
 
     # Update the status to "Rejected"
-    update_request_status(request_id, 'Rejected', approver_id, approver_comment, duration)
+    update_request_status(request_id, 'Rejected', reporting_manager_id, approver_comment)
 
     # Log the rejection in the audit log
-    create_audit_log(request_id, request_record.requester_email, 'rejected', approver_id, request_record.reporting_manager_email, request_record.start_date.isoformat(), duration, request_record.department)
+    create_audit_log(request_id, request_record.requester_email, 'Rejected', reporting_manager_id, request_record.reporting_manager_email, request_record.start_date.isoformat(), request_record.duration, request_record.department, approver_comment)
 
     # Send RabbitMQ messages
-    send_rabbitmq_message('rejected', request_record.requester_email, request_record.reporting_manager_email, request_record.start_date.isoformat(), approver_comment, request_record.duration)
+    send_rabbitmq_message('Rejected', request_record.requester_email, request_record.reporting_manager_email, request_record.start_date.isoformat(), approver_comment, request_record.duration)
 
     return jsonify({'status': 'Request rejected'}), 200
 
-def update_request_status(request_id, new_status, approver_id, approver_comment, duration=None):
+def update_request_status(request_id, new_status, reporting_manager_id, approver_comment, duration=None):
     # Query the request by request_id
     request_record = RequestModel.query.filter_by(request_id=request_id).first()
 
     if request_record:
         # Update the fields
         request_record.status = new_status
-        request_record.reporting_manager_id = approver_id
+        request_record.reporting_manager_id = reporting_manager_id
         request_record.approver_comment = approver_comment
         
         # Update the duration only if provided
@@ -234,16 +265,17 @@ def update_request_status(request_id, new_status, approver_id, approver_comment,
 
 
 
-def create_audit_log(request_id, requester_email, action, approver_id, approver_email, start_date, duration, department):
+def create_audit_log(request_id, requester_email, action, reporting_manager_id, approver_email, start_date, duration, department, approver_comment):
     new_log = AuditLogModel(
         request_id=request_id,
         requester_email=requester_email,
         action=action,
-        approver_id=approver_id,
+        reporting_manager_id=reporting_manager_id,
         approver_email=approver_email,
         start_date=start_date,  # Log the specific WFH start date
         duration=duration,  # Log the duration of the WFH request
-        department = department
+        department = department,
+        approver_comment=approver_comment
     )
     db.session.add(new_log)
     db.session.commit()
