@@ -10,38 +10,73 @@ volumes:
 services:
   # Microservices
   micro_event:
-    build: ./micro_event
+    build: 
+      context: ./micro_event
+    command: python micro_event.py
+    environment:
+      - FLASK_ENV=development
     ports:
-      - "5001:5000"
+      - "5001:5001"
+    restart: always
+    networks:
+      - worknest_default
     env_file:
       - .env
-      
+
   micro_profile:
-    build: ./micro_profile
+    build: 
+      context: ./micro_profile
+    command: python micro_profile.py
+    environment:
+      - FLASK_ENV=development
     ports:
-      - "5002:5000"
+      - "5002:5002"
+    restart: always
+    networks:
+      - worknest_default
     env_file:
       - .env
-      
+
   micro_request:
-    build: ./micro_request
+    build: 
+      context: ./micro_request
+    command: python micro_request.py
+    environment:
+      - FLASK_ENV=development
     ports:
-      - "5003:5000"
+      - "5003:5003"
+    restart: always
+    networks:
+      - worknest_default
     env_file:
       - .env
-      
+
   micro_schedule:
-    build: ./micro_schedule
+    build: 
+      context: ./micro_schedule
+    command: python micro_schedule.py
+    environment:
+      - FLASK_ENV=development
     ports:
-      - "5004:5000"
+      - "5004:5004"
+    restart: always
+    networks:
+      - worknest_default
     env_file:
       - .env
       
 
   complex_view_schedule:
-    build: ./complex_service_staff
+    build:
+      context: ./complex_service_staff
+    command: python complex_view_schedule.py
+    environment:
+      - FLASK_ENV=development
     ports:
-      - "5005:5000"
+      - "5005:5005"
+    restart: always
+    networks:
+      - worknest_default
     env_file:
       - .env
 
