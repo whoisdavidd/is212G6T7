@@ -78,19 +78,19 @@ class AuditLogModel(db.Model):
     requester_email = db.Column(db.String(50), nullable = False)
     action = db.Column(db.String(50), nullable=False)  # Action performed (e.g., 'approved' or 'rejected')
     reporting_manager_id = db.Column(db.Integer, nullable=False)  # ID of the approver
-    approver_email = db.Column(db.String(50), nullable=False)  # Email of the approver
+    reporting_manager_email = db.Column(db.String(50), nullable=False)  # Email of the approver
     action_timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())  # Auto log time
     start_date = db.Column(db.Date, nullable=False)  # Start date of the request being approved/rejected
     duration = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
     approver_comment = db.Column(db.String(50))
 
-    def __init__(self, request_id, requester_email, action, reporting_manager_id, approver_email, start_date, duration, department, approver_comment):
+    def __init__(self, request_id, requester_email, action, reporting_manager_id, reporting_manager_email, start_date, duration, department, approver_comment):
         self.request_id = request_id
         self.requester_email = requester_email
         self.action = action
         self.reporting_manager_id = reporting_manager_id
-        self.approver_email = approver_email
+        self.reporting_manager_email = reporting_manager_email
         self.start_date = start_date
         self.duration = duration
         self.department = department
@@ -107,7 +107,7 @@ class AuditLogModel(db.Model):
             'requester_email': self.requester_email,  # Include requester_email in the dictionary
             'action': self.action,
             'reporting_manager_id': self.reporting_manager_id,
-            'approver_email': self.approver_email,
+            'reporting_manager_email': self.reporting_manager_email,
             'action_timestamp': self.action_timestamp.isoformat(),  # Convert to string for JSON serialization
             'start_date': self.start_date.isoformat(),  # Convert to string for JSON serialization
             'duration': self.duration,
@@ -130,12 +130,11 @@ class ScheduleModel(db.Model):
         self.department = department
         self.status = status
 
-    
     def save_to_db(self):
         db.session.add(self)
         db.session.commit()
  
-def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, approver_comment, duration):
+def send_rabbitmq_message(action, requester_email, reporting_manager_email, wfh_date, approver_comment, duration):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
     channel = connection.channel()
     
@@ -146,7 +145,7 @@ def send_rabbitmq_message(action, requester_email, approver_email, wfh_date, app
     message = {
         'action': action,
         'email': requester_email,
-        'approver_email': approver_email,
+        'reporting_manager_email': reporting_manager_email,
         'wfh_date': wfh_date,
         'approver_comment': approver_comment, 
         'duration': duration
@@ -265,13 +264,13 @@ def update_request_status(request_id, new_status, reporting_manager_id, approver
 
 
 
-def create_audit_log(request_id, requester_email, action, reporting_manager_id, approver_email, start_date, duration, department, approver_comment):
+def create_audit_log(request_id, requester_email, action, reporting_manager_id, reporting_manager_email, start_date, duration, department, approver_comment):
     new_log = AuditLogModel(
         request_id=request_id,
         requester_email=requester_email,
         action=action,
         reporting_manager_id=reporting_manager_id,
-        approver_email=approver_email,
+        reporting_manager_email=reporting_manager_email,
         start_date=start_date,  # Log the specific WFH start date
         duration=duration,  # Log the duration of the WFH request
         department = department,
