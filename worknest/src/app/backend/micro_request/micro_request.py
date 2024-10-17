@@ -383,6 +383,18 @@ def get_all_requests():
     return jsonify([request.to_dict() for request in requests])
 
 
+# Get all requests for a specific manager, based on reporting_manager_id
+@app.route('/requests/manager/<int:manager_id>', methods=['GET'])
+def get_requests_for_manager(manager_id):
+    # Fetch all requests where the reporting_manager_id matches the manager_id
+    requests = RequestModel.query.filter_by(reporting_manager_id=manager_id).all()
+
+    if requests:
+        return jsonify([request.to_dict() for request in requests]), 200
+    return jsonify({"message": "No requests found for this manager."}), 404
+
+
+
 # ---------------------------------- Get Requests for Specific Staff ----------------------------------
 
 @app.route('/request/staff/<int:staff_id>', methods=['GET'])
@@ -433,6 +445,7 @@ def withdraw_request(request_id):
     client_staff_id = request.headers.get('X-Staff-ID')
     manager_department = request.headers.get('X-Department')
 
+    # Check if all headers are provided
     if not role or not client_staff_id or not manager_department:
         return jsonify({'message': 'Missing authentication headers.'}), 400
 
@@ -442,24 +455,54 @@ def withdraw_request(request_id):
     except ValueError:
         return jsonify({'message': 'Invalid data types for role or staff ID.'}), 400
 
+    request_obj = None
+
+    # Role 2: Staff - can withdraw pending requests they created
     if role == 2:
         request_obj = RequestModel.query.filter_by(
             request_id=request_id, staff_id=client_staff_id, status='pending'
         ).first()
         if not request_obj:
             return jsonify({'message': 'Unauthorized to withdraw this request or request already processed.'}), 403
+
+    # Role 1: HR - can withdraw pending requests
     elif role == 1:
         request_obj = RequestModel.query.filter_by(
-            request_id=request_id, status='pending', department=manager_department
+            request_id=request_id, status='pending'
         ).first()
         if not request_obj:
+            return jsonify({'message': 'Request not found or already processed.'}), 404
+
+    # Role 3: Manager - can withdraw approved requests in their department
+    elif role == 3:
+        # Strip and normalize department to ensure there's no extra space
+        manager_department = manager_department.strip()
+        print(f"Normalized Department: '{manager_department}'")
+
+        # Execute the query with correct case matching
+        # request_obj = RequestModel.query.filter(
+        #     RequestModel.request_id == request_id,
+        #     RequestModel.status == 'Approved',  # Match exact casing
+        #     RequestModel.department.ilike(manager_department)  # Case-insensitive match for department
+        # ).first()
+
+        request_objs = RequestModel.query.filter(RequestModel.request_id == request_id).all()
+        for req in request_objs:
+            print(f"Request ID: {req.request_id}, Status: {req.status}, Department: '{req.department}'")
+
+
+        if not request_obj:
+            print(f"Request not found with ID: {request_id}, Status: 'Approved', Department: '{manager_department}'")
             return jsonify({'message': 'Request not found, already processed, or not within your department.'}), 404
+
     else:
         return jsonify({'message': 'Invalid role.'}), 400
 
+    # Update the request status to 'Withdrawn'
     request_obj.status = 'Withdrawn'
     db.session.commit()
 
+    # Update the schedule if necessary
     schedule_update_url = "http://localhost:5004/schedule/update"  
     schedule_update_data = {
         'staff_id': request_obj.staff_id,
@@ -476,6 +519,10 @@ def withdraw_request(request_id):
         return jsonify({'message': 'Request withdrawn, but an error occurred while updating schedule.', 'error': str(e)}), 500
 
     return jsonify({'message': 'Request withdrawn successfully.'}), 200
+
+
+
+
 
 # ---------------------------------- Cancel Request ----------------------------------
 

@@ -29,10 +29,28 @@ const StatusLabel = styled(Box)(({ status }) => ({
     fontWeight: 'bold',
     width: '100%',
     textAlign: 'center',
-    color: status === 'Approved' ? '#2e7d32' : status === 'Pending' ? '#f57c00' : '#d32f2f',
+    color:
+        status === 'Approved' ? '#2e7d32' :
+        status === 'Pending' ? '#f57c00' :
+        status === 'Rejected' ? '#d32f2f' :
+        status === 'Withdrawn' ? '#808080' : // For Withdrawn (shown as Cancelled)
+        '#808080',
     backgroundColor:
-        status === 'Approved' ? '#e8f5e9' : status === 'Pending' ? '#fff3e0' : '#ffebee',
+        status === 'Approved' ? '#e8f5e9' :
+        status === 'Pending' ? '#fff3e0' :
+        status === 'Rejected' ? '#ffebee' :
+        status === 'Withdrawn' ? '#f0f0f0' : // For Withdrawn (shown as Cancelled)
+        '#f0f0f0',
 }));
+
+// Helper function to display status text
+const getStatusText = (status) => {
+    if (status === 'Withdrawn') {
+        return 'Cancelled'; // Show Withdrawn status as Cancelled
+    }
+    return status;
+};
+
 
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (dateString) => {
@@ -72,6 +90,7 @@ const ManagerViewRequests = () => {
     const [newStatus, setNewStatus] = useState('');
     const [rejectReason, setRejectReason] = useState('');
     const [approvalComment, setApprovalComment] = useState(''); // New state for approval comment
+    const [withdrawReason, setWithdrawReason] = useState(''); // New state for withdraw reason
 
     const statusOrder = {
         'Pending': 1,
@@ -80,17 +99,26 @@ const ManagerViewRequests = () => {
         'Cancelled': 4
     };
 
-    // Fetch all requests from the backend using fetch
     useEffect(() => {
         const fetchRequestsAndProfiles = async () => {
             try {
-                const requestsResponse = await fetch('http://127.0.0.1:5003/request');
+                const storedManagerId = localStorage.getItem('managerId');
+                // const storedManagerId = 140879; // Replace with dynamic fetching or localStorage
+                
+                // Fetch all requests for the current manager's department
+                const requestsResponse = await fetch(`http://127.0.0.1:5003/requests/manager/${storedManagerId}`);
                 const requestsData = await requestsResponse.json();
-
+    
+                if (requestsResponse.ok) {
+                    setRequests(requestsData);
+                } else {
+                    console.error('No requests found for this manager.');
+                }
+    
+                // Fetch all profiles (if needed)
                 const profilesResponse = await fetch('http://127.0.0.1:5002/profile');
                 const profilesData = await profilesResponse.json();
-
-                setRequests(requestsData);
+    
                 setProfiles(profilesData);
                 setLoading(false);
             } catch (error) {
@@ -98,9 +126,9 @@ const ManagerViewRequests = () => {
                 setLoading(false);
             }
         };
-
+    
         fetchRequestsAndProfiles();
-    }, []);
+    }, []);    
 
     // Helper function to get full name from profiles
     const getRequesterName = (staffId) => {
@@ -145,11 +173,13 @@ const ManagerViewRequests = () => {
         setRejectReason('');
         setApprovalComment(''); // Reset approval comment
 
-        // Send request to the backend (approve or reject)
+        // Send request to the backend (approve, reject, or withdraw)
         if (newStatus === 'Approved') {
             await approveRequest(currentRequest, approvalComment); // Pass the approval comment
         } else if (newStatus === 'Rejected') {
             await rejectRequest(currentRequest, rejectReason);
+        } else if (newStatus === 'Withdrawn') {
+            await withdrawRequest(currentRequest, withdrawReason);
         }
 
         // Re-sort requests to reflect the latest status changes
@@ -215,12 +245,60 @@ const ManagerViewRequests = () => {
             console.error('Error rejecting request:', error);
         }
     };
+
+    const handleWithdrawRequest = async (request) => {
+        try {
+            const requestId = request.request_id;
+            
+            // Fetch dynamic values from localStorage
+            const role = localStorage.getItem('role'); // Assuming 'role' is saved in localStorage
+            const staffId = localStorage.getItem('staffId'); // Assuming 'staffId' is saved in localStorage
+            const department = localStorage.getItem('department'); // Assuming 'department' is saved in localStorage
+
+            // localStorage.setItem('role', '3'); // Replace '3' with the actual role obtained dynamically
+            // localStorage.setItem('staffId', '140879'); // Replace '140879' with the actual staff ID
+            // localStorage.setItem('department', 'Sales'); // Replace 'Sales' with the actual department
+
     
+            if (!role || !staffId || !department) {
+                throw new Error('Missing required user information');
+            }
+    
+            // Make the request to withdraw
+            const response = await fetch(`http://127.0.0.1:5003/request/withdraw/${requestId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Role': role,
+                    'X-Staff-ID': staffId,
+                    'X-Department': department,
+                },
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message);
+            }
+    
+            // Update the state to reflect the withdrawn request
+            setRequests((prevRequests) => 
+                prevRequests.map((req) => 
+                    req.request_id === requestId ? { ...req, status: 'Withdrawn' } : req
+                )
+            );
+    
+            console.log('Request withdrawn successfully');
+        } catch (error) {
+            console.error('Error withdrawing request:', error.message);
+        }
+    };
+        
 
     const handleCloseConfirmDialog = () => {
         setOpenConfirmDialog(false);
         setRejectReason('');
         setApprovalComment(''); // Reset approval comment when dialog is closed
+        setWithdrawReason('');  // Reset withdraw reason when dialog is closed
     };
 
     // Sorting and filtering logic
@@ -371,7 +449,7 @@ const ManagerViewRequests = () => {
                                 <TableCell>{request.end_date ? formatDate(request.end_date) : 'N/A'}</TableCell>
                                 <TableCell>
                                     <StatusLabel status={request.status}>
-                                        {request.status}
+                                        {getStatusText(request.status)}
                                     </StatusLabel>
                                 </TableCell>
                                 <TableCell>
@@ -386,7 +464,7 @@ const ManagerViewRequests = () => {
                                         color="success"
                                         onClick={() => handleStatusChange(request, 'Approved')}
                                         style={{ marginRight: '10px' }}
-                                        disabled={request.status === 'Approved' || request.status === 'Cancelled'}
+                                        disabled={request.status === 'Approved' || request.status === 'Cancelled' || request.status === 'Withdrawn'}
                                     >
                                         Approve
                                     </Button>
@@ -394,9 +472,18 @@ const ManagerViewRequests = () => {
                                         variant="contained"
                                         color="error"
                                         onClick={() => handleStatusChange(request, 'Rejected')}
-                                        disabled={request.status === 'Rejected' || request.status === 'Cancelled'}
+                                        style={{ marginRight: '10px' }}
+                                        disabled={request.status === 'Rejected' || request.status === 'Cancelled' || request.status === 'Approved' || request.status === 'Withdrawn'}
                                     >
                                         Reject
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => handleWithdrawRequest(request)}
+                                        disabled={request.status !== 'Approved'}
+                                    >
+                                        Withdraw
                                     </Button>
                                 </TableCell>
                             </TableRow>
@@ -441,6 +528,22 @@ const ManagerViewRequests = () => {
                                 fullWidth
                                 value={approvalComment}
                                 onChange={(e) => setApprovalComment(e.target.value)}
+                            />
+                        </>
+                    )}
+                    {newStatus === 'Withdrawn' && (
+                        <>
+                            <Typography variant="body1" gutterBottom>
+                                Please provide a reason for withdrawal:
+                            </Typography>
+                            <TextField
+                                autoFocus
+                                margin="dense"
+                                label="Withdraw Reason"
+                                type="text"
+                                fullWidth
+                                value={withdrawReason}
+                                onChange={(e) => setWithdrawReason(e.target.value)}
                             />
                         </>
                     )}
