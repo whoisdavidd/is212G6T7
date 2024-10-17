@@ -623,14 +623,15 @@ CREATE table schedule(
 
 CREATE TABLE audit_log (
     log_id SERIAL PRIMARY KEY,
-    request_id INT NOT NULL,
+    request_id INT NOT NULL UNIQUE, -- unique so no duplica 
     requester_email VARCHAR(50) NOT NULL,
     action VARCHAR(50) NOT NULL,
-    approver_id INT NOT NULL,
-    approver_email VARCHAR(50) NOT NULL,
+    reporting_manager_id INT NOT NULL,
+    reporting_manager_email VARCHAR(50) NOT NULL,
     action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     start_date DATE NOT NULL, -- The specific date being approved or rejected
     duration INT NOT NULL,
-    department VARCHAR(50) NOT NULL 
+    department VARCHAR(50) NOT NULL, 
+    approver_comment VARCHAR(50) NOT NULL 
 
 );
