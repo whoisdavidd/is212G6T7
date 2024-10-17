@@ -2,6 +2,7 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import WfhButton from './WfhButton';
+import EditButton from './EditButton';
 import { DataGrid } from '@mui/x-data-grid';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,7 +11,7 @@ export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-  const staff_id = 210030; // Assuming this will be used for future actions
+  const staff_id = sessionStorage.getItem("staff_id"); // Assuming this will be used for future actions
 
   // Fetch event data from the Flask backend
   const fetchEventData = async (retryCount = 3) => {
@@ -85,7 +86,7 @@ export default function FullFeaturedCrudGrid() {
                 Cancel
               </Button>
             )}
-            {status === 'approved' && (
+            {status === 'Approved' && (
               <Button
                 variant="contained"
                 color="primary"
@@ -97,6 +98,35 @@ export default function FullFeaturedCrudGrid() {
           </div>
         );
       },
+    },
+    {
+      field: 'edit',
+      headerName: 'Edit',
+      width: 150,
+      renderCell: (params) => {
+        const { request_id, status } = params.row;
+
+        return (
+          <div>
+            {
+              <EditButton 
+                requestId={request_id} 
+                onRequestUpdate={handleRequestUpdate} 
+                currentStatus={status}
+              />
+            }
+          </div>
+        );
+      },
+    },
+    // Can remove if done, this is for referencing88
+    {
+      field: "Request ID",
+      headerName: "Request ID",
+      width: 150,
+      renderCell: (params) => {
+        return params.row.request_id;
+      } 
     },
   ];
 
@@ -181,9 +211,15 @@ export default function FullFeaturedCrudGrid() {
   if (loading) return <div>Loading requests...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  // Add this function to handle updates after editing
+  const handleRequestUpdate = (updatedRequest) => {
+    setRows(prevRows => prevRows.map(row => 
+      row.request_id === updatedRequest.request_id ? updatedRequest : row
+    ));
+  };
+
   return (
     <div>
-      <WfhButton />
       <Box sx={{ height: 500, width: '100%' }}>
         <DataGrid
           rows={rows}

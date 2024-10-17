@@ -609,7 +609,7 @@ CREATE TABLE request (
     reporting_manager_name VARCHAR(50) NOT NULL,
     reporting_manager_email VARCHAR(50) NOT NULL,  -- Added field for approver email -- easier to retrieve for sending of emails
     requester_email VARCHAR(50) NOT NULL,          -- Added field for requester email
-    day_id SERIAL NOT NULL,
+    day_id SERIAL,
     recurring_days INT[],
     approver_comment VARCHAR(50)
 );

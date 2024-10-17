@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
@@ -13,9 +13,9 @@ load_dotenv()
 db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')  # Use environment variable for security
+app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')  # Replace with a secure key or use an environment variable
 
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  # Replace with your frontend's URL
+CORS(app) # Replace with your frontend's URL
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -31,22 +31,22 @@ swagger = Swagger(app)
 
 class RequestModel(db.Model):
     __tablename__ = "request"
-    request_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    request_id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     staff_id = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
     start_date = db.Column(db.String(50), nullable=False)
     reason = db.Column(db.String(50), nullable=False)
-    duration = db.Column(db.String(50), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), nullable=False)
-    reporting_manager_id = db.Column(db.Integer)
-    reporting_manager_name = db.Column(db.String(50))
-    reporting_manager_email = db.Column(db.String(50))
-    requester_email = db.Column(db.String(50))
-    day_id = db.Column(db.Integer)
-    recurring_days = db.Column(db.Integer)
-    approver_comment = db.Column(db.String(255))
+    reporting_manager_id = db.Column(db.Integer, nullable=False)
+    reporting_manager_name = db.Column(db.String(50), nullable=False)
+    reporting_manager_email = db.Column(db.String(50), nullable=False)
+    requester_email = db.Column(db.String(50), nullable=False)
+    day_id = db.Column(db.Integer, nullable=True)  # Allowing null values
+    recurring_days = db.Column(db.Integer, nullable=True)  # Allowing null values
+    approver_comment = db.Column(db.String(50), nullable=True)  # Allowing null values
     
-    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, reporting_manager_email, requester_email, day_id, recurring_days, approver_comment):
+    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, reporting_manager_email, requester_email, day_id=None, recurring_days=None, approver_comment=None):
         self.staff_id = staff_id
         self.department = department
         self.start_date = start_date
@@ -57,8 +57,11 @@ class RequestModel(db.Model):
         self.reporting_manager_name = reporting_manager_name
         self.reporting_manager_email = reporting_manager_email
         self.requester_email = requester_email
+        self.reporting_manager_email = reporting_manager_email
+        self.requester_email = requester_email
         self.day_id = day_id
         self.recurring_days = recurring_days
+        self.approver_comment = approver_comment
         self.approver_comment = approver_comment
         
     def to_dict(self):
@@ -70,11 +73,16 @@ class RequestModel(db.Model):
             'reason': self.reason,
             'duration': self.duration,
             'status': self.status,
+            'status': self.status,
             'reporting_manager_id': self.reporting_manager_id,
             'reporting_manager_name': self.reporting_manager_name,
             'reporting_manager_email': self.reporting_manager_email,
             'requester_email': self.requester_email,
+            'reporting_manager_email': self.reporting_manager_email,
+            'requester_email': self.requester_email,
             'day_id': self.day_id,
+            'recurring_days': self.recurring_days,
+            'approver_comment': self.approver_comment,
             'recurring_days': self.recurring_days,
             'approver_comment': self.approver_comment
         }
@@ -129,6 +137,24 @@ def get_all_requests():
         logger.error(f"[GET] /requests - Error fetching requests: {str(e)}")
         return jsonify({'error': 'Failed to fetch requests'}), 500
     
+
+# ---------------------------------- Add Request ----------------------------------
+
+@app.route('/request/staff/<int:staff_id>', methods=['GET'])
+def get_staff_requests(staff_id):
+    staff_requests = RequestModel.query.filter_by(staff_id=staff_id).all()
+    if not staff_requests:
+        return jsonify({'message': 'No requests found for this staff member.'}), 404
+    return jsonify([request.to_dict() for request in staff_requests]), 200
+
+
+# ---------------------------------- Get specific Requests by request_id ----------------------------------
+@app.route('/request/<int:request_id>', methods=['GET'])
+def get_request(request_id):
+    request = RequestModel.query.get(request_id)
+    if not request:
+        return jsonify({'message': 'Request not found'}), 404
+    return jsonify(request.to_dict()), 200
 
 # ------------------------------ Get all requests by staff_id ------------------------------
 

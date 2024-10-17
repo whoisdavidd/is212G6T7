@@ -91,10 +91,10 @@ export default function StaffCalendar() {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div>
+    <>
       <ButtonGroup variant="contained" aria-label="outlined primary button group">
-        <Button onClick={() => handleViewChange('personal')}>Personal Schedule</Button>
-        <Button onClick={() => handleViewChange('team')}>Team Schedule</Button>
+        <Button onClick={() => setViewType('personal')}>Personal Schedule</Button>
+        <Button onClick={() => setViewType('team')}>Team Schedule</Button>
       </ButtonGroup>
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
@@ -104,10 +104,11 @@ export default function StaffCalendar() {
         eventContent={renderEventContent}
       />
       {events.length === 0 && <div>No requests found.</div>}
-    </div>
+    </>
   );
 }
 
+// Render event content in the calendar
 function renderEventContent(eventInfo) {
   const { event } = eventInfo;
   const isWfh = event.extendedProps.type === 'wfh';
@@ -119,4 +120,7 @@ function renderEventContent(eventInfo) {
       {isWfh && status && <div>Status: {status}</div>}
     </>
   );
+
 }
+
+

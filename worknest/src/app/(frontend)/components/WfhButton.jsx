@@ -10,206 +10,229 @@ import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import MenuItem from "@mui/material/MenuItem";
 import { useState } from "react";
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 
-// Function to fetch managers
-const fetchManagers = async () => {
-  const staff_id = sessionStorage.getItem("staff_id");
+const WfhButton = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    staff_id: '',
+    department: '',
+    start_date: '',
+    reason: 'Work From Home',
+    duration: '',
+    recurring_days: '', // Change here
+    reporting_manager_id: '',
+    reporting_manager_name: '',
+    reporting_manager_email: '',
+    requester_email: ''
+  });
 
-  if (!staff_id) {
-    console.error("No staff_id found in session storage");
-    return [];
-  }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let parsedValue = value;
 
-  try {
-    const response = await fetch(`http://127.0.0.1:5002/managers/${staff_id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    const managerData = await response.json();
-
-    if (response.ok) {
-      return [managerData]; // Wrap single object in array for Autocomplete
-    } else {
-      console.error("Error fetching managers:", managerData);
-      return [];
+    if (name === 'staff_id' || name === 'reporting_manager_id') {
+      parsedValue = parseInt(value);
+    } else if (name === 'start_date') {
+      parsedValue = new Date(value).toISOString().split('T')[0];
+    } else if (name === 'recurring_days') {
+      // No need to parse here; keep it as a string
+      parsedValue = value; // Store as-is for now
     }
-  } catch (error) {
-    console.error("Fetch error:", error);
-    return [];
-  }
-};
 
-// Function to create a WFH event
-const createWFHEvent = async (startDate, endDate, reason, manager, dayId, recurringDays) => {
-  const staff_id = sessionStorage.getItem("staff_id");
-  const employeeDepartment = sessionStorage.getItem("department");
-  const requesterEmail = sessionStorage.getItem("email");
-
-  try {
-    const response = await fetch("http://localhost:5003/requests", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        staff_id: staff_id,
-        event_name: "WFH",
-        start_date: startDate,
-        end_date: endDate,
-        reason: reason,
-        reporting_manager_name: manager.reporting_manager_name,
-        reporting_manager_id: manager.reporting_manager_id,
-        reporting_manager_email: manager.reporting_manager_email,
-        requester_email: requesterEmail,
-        department: employeeDepartment,
-        event_type: "WFH",
-        day_id: dayId,
-        recurring_days: recurringDays
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      toast.success("WFH Event Created Successfully");
-      return data;
-    } else {
-      throw new Error(data.message || "Failed to create WFH event");
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    toast.error("An error occurred while creating the WFH event. Please try again.");
-    throw error;
-  }
-};
-
-export default function WfhButton() {
-  const [open, setOpen] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [reason, setReason] = useState("");
-  const [managers, setManagers] = useState([]);
-  const [selectedManager, setSelectedManager] = useState(null);
-  const [recurringDays, setRecurringDays] = useState(0);
-
-  // Fetch managers when the dialog is opened
-  const handleClickOpen = async () => {
-    setOpen(true);
-    const managersData = await fetchManagers();
-    setManagers(managersData);
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: parsedValue
+    }));
   };
 
-  const handleClose = () => {
-    setOpen(false);
-  };
+  const handleWfhRequest = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
-  const handleManagerChange = (event, value) => {
-    setSelectedManager(value);
-  };
-
-  // Calculate day_id based on startDate
-  const calculateDayId = (dateString) => {
-    const date = new Date(dateString);
-    return date.getDay(); // Returns 0 for Sunday, 1 for Monday, etc.
-  };
-
-  // Handle form submission
-  const handleSubmit = async () => {
-    const dayId = calculateDayId(startDate);
     try {
-      await createWFHEvent(startDate, endDate, reason, selectedManager, dayId, recurringDays);
-      handleClose();
+      const { start_date, duration, recurring_days } = formData;
+      const durationDays = parseInt(duration);
+      const startDate = new Date(start_date);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + durationDays);
+
+      const requestData = {
+        ...formData,
+        status: 'Pending',
+        end_date: endDate.toISOString().split('T')[0],
+        recurring_days: recurring_days.split(',').map(day => parseInt(day.trim())).filter(day => !isNaN(day)) // Parse when sending
+      };
+
+      const response = await axios.post(`http://localhost:5003/add_request/${formData.staff_id}`, requestData);
+      console.log('Request added:', response.data);
+      setSuccess('Request submitted successfully!');
+      setFormData({
+        staff_id: '',
+        department: '',
+        start_date: '',
+        reason: 'Work From Home',
+        duration: '',
+        recurring_days: '',
+        reporting_manager_id: '',
+        reporting_manager_name: '',
+        reporting_manager_email: '',
+        requester_email: ''
+      });
+      setShowForm(false);
     } catch (error) {
-      console.error("Error submitting WFH request:", error);
+      console.error('Error adding request:', error);
+      setError('Failed to submit request');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div>
       <Stack spacing={2} direction="row">
-        <Button variant="contained" onClick={handleClickOpen}>
-          Request for WFH
+        <Button 
+          variant="text" 
+          onClick={() => setShowForm((prev) => !prev)}
+        >
+          {showForm ? 'Cancel' : 'Request Work From Home'}
         </Button>
       </Stack>
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>WFH Request Form</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Fill out the details below to submit your WFH request.
-          </DialogContentText>
 
-          <TextField
-            margin="dense"
-            id="startDate"
-            label="Start Date"
-            type="date"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <TextField
-            margin="dense"
-            id="endDate"
-            label="End Date"
-            type="date"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-          <TextField
-            margin="dense"
-            id="reason"
-            label="Reason for WFH"
-            fullWidth
-            required
-            onChange={(e) => setReason(e.target.value)}
-          />
-
-          <Autocomplete
-            options={managers}
-            getOptionLabel={(option) => option.reporting_manager_name}
-            onChange={handleManagerChange}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                margin="dense"
-                label="Manager's Name"
-                fullWidth
+      {showForm && (
+        <form onSubmit={handleWfhRequest}>
+          <div>
+            <label>
+              Staff ID:
+              <input
+                type="number"
+                name="staff_id"
+                value={formData.staff_id}
+                onChange={handleChange}
+                required
               />
-            )}
-          />
-
-          <TextField
-            select
-            margin="dense"
-            id="recurringDays"
-            label="Recurring"
-            fullWidth
-            value={recurringDays}
-            onChange={(e) => setRecurringDays(e.target.value)}
-          >
-            <MenuItem value={0}>None</MenuItem>
-            <MenuItem value={1}>Weekly</MenuItem>
-            <MenuItem value={2}>Biweekly</MenuItem>
-            <MenuItem value={3}>Monthly</MenuItem>
-          </TextField>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={!startDate || !endDate || !reason || !selectedManager}
-          >
-            Submit Request
-          </Button>
-        </DialogActions>
-      </Dialog>
+            </label>
+          </div>
+          <div>
+            <label>
+              Department:
+              <input
+                type="text"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Start Date:
+              <input
+                type="date"
+                name="start_date"
+                value={formData.start_date}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Duration (in days):
+              <input
+                type="number"
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Recurring Days (e.g., 1,3,5 for Mon, Wed, Fri):
+              <input
+                type="text"
+                name="recurring_days"
+                value={formData.recurring_days}
+                onChange={handleChange}
+                placeholder="e.g. 1,3,5"
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Reporting Manager ID:
+              <input
+                type="number"
+                name="reporting_manager_id"
+                value={formData.reporting_manager_id}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Reporting Manager Name:
+              <input
+                type="text"
+                name="reporting_manager_name"
+                value={formData.reporting_manager_name}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Reporting Manager Email:
+              <input
+                type="email"
+                name="reporting_manager_email"
+                value={formData.reporting_manager_email}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Requester Email:
+              <input
+                type="email"
+                name="requester_email"
+                value={formData.requester_email}
+                onChange={handleChange}
+                required
+              />
+            </label>
+          </div>
+          <Stack spacing={2} direction="row">
+            <Button 
+              type="submit" 
+              variant="contained" 
+              disabled={loading}
+            >
+              {loading ? 'Submitting...' : 'Submit Request'}
+            </Button>
+          </Stack>
+        </form>
+      )}
+      
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {success && <p style={{ color: 'green' }}>{success}</p>}
     </div>
   );
-}
+};
+
+export default WfhButton;
