@@ -7,7 +7,16 @@ export default function StaffCalendar() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const staff_id = sessionStorage.getItem("staff_id");
+//   const staff_id = sessionStorage.getItem("staff_id");
+  const [staffId, setStaffId] = useState(null); 
+
+  useEffect(() => {
+    // Ensure sessionStorage is available only in the client
+    if (typeof window !== 'undefined') {
+      const storedStaffId = sessionStorage.getItem('staff_id');
+      setStaffId(storedStaffId);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -71,7 +80,7 @@ export default function StaffCalendar() {
     };
 
     fetchRequests();
-  }, []);
+  }, [staffId]);
 
   if (loading) return <div>Loading requests...</div>;
   if (error) return <div>Error: {error}</div>;

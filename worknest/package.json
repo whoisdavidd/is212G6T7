@@ -29,6 +29,7 @@
     "@syncfusion/ej2-react-schedule": "^27.1.48",
     "axios": "^1.7.7",
     "@toolpad/core": "^0.7.0",
+    "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
     "date-fns": "^4.1.0",
     "material-react-table": "^3.0.1",
