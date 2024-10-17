@@ -7,16 +7,16 @@ import {
     TableHead,
     TableRow,
     Paper,
-    Button,
     TableSortLabel,
     Box,
+    Button,
     Dialog,
     DialogActions,
     DialogContent,
     DialogContentText,
     DialogTitle,
     TextField,
-    Typography
+    Typography,
 } from '@mui/material';
 import { styled } from '@mui/system';
 import FilterForm from './FilterForm';
@@ -53,7 +53,7 @@ const getDayOfWeek = (dayId) => {
 // Recurring day helper function
 const recurringDaysString = (recurringDays) => {
     const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return recurringDays ? recurringDays.map(day => daysOfWeek[day - 1]).join(', ') : '-';
+    return recurringDays ? recurringDays.map((day) => daysOfWeek[day - 1]).join(', ') : '-';
 };
 
 const ManagerViewRequests = () => {
@@ -67,10 +67,13 @@ const ManagerViewRequests = () => {
         to: '',
     });
     const [sortConfig, setSortConfig] = useState({ key: 'requesterName', direction: 'asc' });
-    const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
-    const [currentRequest, setCurrentRequest] = useState(null);
-    const [newStatus, setNewStatus] = useState('');
-    const [rejectReason, setRejectReason] = useState('');
+
+    const statusOrder = {
+        Pending: 1,
+        Approved: 2,
+        Rejected: 3,
+        Cancelled: 4,
+    };
 
     // Fetch all requests from the backend using fetch
     useEffect(() => {
@@ -96,7 +99,7 @@ const ManagerViewRequests = () => {
 
     // Helper function to get full name from profiles
     const getRequesterName = (staffId) => {
-        const profile = profiles.find(p => p.staff_id === staffId);
+        const profile = profiles.find((p) => p.staff_id === staffId);
         return profile ? `${profile.staff_fname} ${profile.staff_lname}` : 'Unknown';
     };
 
@@ -109,140 +112,48 @@ const ManagerViewRequests = () => {
         setSortConfig({ key: column, direction: isAsc ? 'desc' : 'asc' });
     };
 
-    const sortedRequests = [...requests].sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-    });
-
-    const handleStatusChange = (request, newStatus) => {
-        setCurrentRequest(request);
-        setNewStatus(newStatus);
-        setOpenConfirmDialog(true); // Open confirmation dialog
-    };
-
-    const handleConfirmStatusChange = async () => {
-        if (newStatus === 'Rejected' && rejectReason === '') {
-            alert('Please provide a reason for rejection');
-            return;
-        }
-
-        const updatedRequests = requests.map((req) =>
-            req.request_id === currentRequest.request_id
-                ? { ...req, status: newStatus, reason: newStatus === 'Rejected' ? rejectReason : '' }
-                : req
-        );
-
-        setRequests(updatedRequests);
-        setOpenConfirmDialog(false);
-        setRejectReason('');
-
-        // Send request to the backend (approve or reject)
-        if (newStatus === 'Approved') {
-            await approveRequest(currentRequest);
-        } else if (newStatus === 'Rejected') {
-            await rejectRequest(currentRequest, rejectReason);
-        }
-    };
-
-    const approveRequest = async (request) => {
-        try {
-            const response = await fetch('http://127.0.0.1:5006/approve_request', {
-                method: 'POST',
-                credentials: 'include', 
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    request_id: request.request_id,
-                    reporting_manager_id: request.reporting_manager_id,
-                    approver_email: request.reporting_manager_email,
-                    requester_email: request.requester_email,
-                    wfh_date: request.start_date,
-                    end_date: request.end_date,  // Include end_date when available
-                    approver_comment: ''
-                }),
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to approve request');
+    // Sorting and filtering logic
+    const filteredRequests = [...requests]
+        .sort((a, b) => {
+            // Sort by status order first
+            const statusComparison = statusOrder[a.status] - statusOrder[b.status];
+            if (statusComparison !== 0) {
+                return statusComparison;
             }
-    
-            console.log('Request approved');
-        } catch (error) {
-            console.error('Error approving request:', error);
-        }
-    };    
 
-    const rejectRequest = async (request, reason) => {
-        try {
-            const response = await fetch('http://127.0.0.1:5006/reject_request', {
-                method: 'POST',
-                credentials: 'include', 
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    request_id: request.request_id,
-                    reporting_manager_id: request.reporting_manager_id,  // Use reporting_manager_id
-                    approver_email: request.reporting_manager_email,
-                    requester_email: request.requester_email,  // Requester's email
-                    wfh_date: request.start_date,  // WFH date from the request
-                    approver_comment: reason  // Rejection reason
-                }),
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to reject request');
+            // If the statuses are the same, sort by the sortConfig key
+            if (sortConfig.key && a[sortConfig.key] < b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
             }
-    
-            console.log('Request rejected');
-        } catch (error) {
-            console.error('Error rejecting request:', error);
-        }
-    };
-    
+            if (sortConfig.key && a[sortConfig.key] > b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        })
+        .filter((request) => {
+            const requestFromDate = new Date(request.start_date).getTime();
+            const requestToDate = request.end_date ? new Date(request.end_date).getTime() : requestFromDate;
+            const filterFromDate = filters.from ? new Date(filters.from).getTime() : null;
+            const filterToDate = filters.to ? new Date(filters.to).getTime() : null;
 
-    const handleCloseConfirmDialog = () => {
-        setOpenConfirmDialog(false);
-        setRejectReason('');
-    };
+            // Retrieve the requester's name using the getRequesterName function
+            const requesterName = getRequesterName(request.staff_id) || 'Unknown'; // Default to 'Unknown' if no match is found
 
-    const filteredRequests = sortedRequests.filter((request) => {
-        const requestFromDate = new Date(request.start_date).getTime();
-        const requestToDate = request.end_date ? new Date(request.end_date).getTime() : requestFromDate;
-        const filterFromDate = filters.from ? new Date(filters.from).getTime() : null;
-        const filterToDate = filters.to ? new Date(filters.to).getTime() : null;
-    
-        // Retrieve the requester's name using the getRequesterName function
-        const requesterName = getRequesterName(request.staff_id) || 'Unknown';  // Default to 'Unknown' if no match is found
-    
-        // Check if the status matches one of the three: "Approved", "Pending", "Rejected"
-        const matchesStatus = filters.status
-            ? request.status.toLowerCase().includes(filters.status.toLowerCase()) ||
-              (filters.status.toLowerCase() === 'all')
-            : true;
-    
-        return (
-            (filters.requesterName ? requesterName.toLowerCase().includes(filters.requesterName.toLowerCase()) : true) &&
-            matchesStatus &&
-            (filterFromDate ? requestFromDate >= filterFromDate : true) &&
-            (filterToDate ? requestToDate <= filterToDate : true)
-        );
-    });
-    
-    
+            return (
+                (filters.requesterName ? requesterName.toLowerCase().includes(filters.requesterName.toLowerCase()) : true) &&
+                (filters.status ? request.status.toLowerCase().includes(filters.status.toLowerCase()) : true) &&
+                (filterFromDate ? requestFromDate >= filterFromDate : true) &&
+                (filterToDate ? requestToDate <= filterToDate : true)
+            );
+        });
+
     const handleFilterChange = (key, value) => {
         setFilters((prevFilters) => ({
             ...prevFilters,
             [key]: value,
         }));
     };
-    
+
     const handleClearFilters = () => {
         setFilters({
             requesterName: '',
@@ -251,7 +162,7 @@ const ManagerViewRequests = () => {
             to: '',
         });
     };
-    
+
     // Define filterOptions here
     const filterOptions = [
         {
@@ -337,7 +248,6 @@ const ManagerViewRequests = () => {
                             </TableCell>
                             <TableCell><strong>Request Status</strong></TableCell>
                             <TableCell><strong>Day(s)</strong></TableCell>
-                            <TableCell><strong>Actions</strong></TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -357,64 +267,11 @@ const ManagerViewRequests = () => {
                                         ? getDayOfWeek(request.day_id) 
                                         : recurringDaysString(request.recurring_days)}
                                 </TableCell>
-                                <TableCell>
-                                    <Button
-                                        variant="contained"
-                                        color="success"
-                                        onClick={() => handleStatusChange(request, 'Approved')}
-                                        style={{ marginRight: '10px' }}
-                                        disabled={request.status === 'Approved'}
-                                    >
-                                        Approve
-                                    </Button>
-                                    <Button
-                                        variant="contained"
-                                        color="error"
-                                        onClick={() => handleStatusChange(request, 'Rejected')}
-                                        disabled={request.status === 'Rejected'}
-                                    >
-                                        Reject
-                                    </Button>
-                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </TableContainer>
-
-            {/* Confirmation Dialog */}
-            <Dialog open={openConfirmDialog} onClose={handleCloseConfirmDialog}>
-                <DialogTitle>Confirm Status Change</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Are you sure you want to change the status of this request to <strong>{newStatus}</strong>?
-                    </DialogContentText>
-                    {newStatus === 'Rejected' && (
-                        <>
-                            <Typography variant="body1" gutterBottom>
-                                Please provide a reason for rejection:
-                            </Typography>
-                            <TextField
-                                autoFocus
-                                margin="dense"
-                                label="Rejection Reason"
-                                type="text"
-                                fullWidth
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                            />
-                        </>
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseConfirmDialog} color="primary">
-                        Cancel
-                    </Button>
-                    <Button onClick={handleConfirmStatusChange} color="primary">
-                        Confirm
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </div>
     );
 };
