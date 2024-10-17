@@ -309,6 +309,7 @@ from dotenv import load_dotenv
 import os
 from flask_cors import CORS
 import requests
+from datetime import datetime
 
 load_dotenv()
 
@@ -317,7 +318,7 @@ db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')  # Replace with a secure key or use an environment variable
 
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])  # Replace with your frontend's URL
+CORS(app) # Replace with your frontend's URL
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Worknest1234!@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'  # Use the database URL from the environment variable
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -380,6 +381,25 @@ class RequestModel(db.Model):
 def get_all_requests():
     requests = RequestModel.query.all()
     return jsonify([request.to_dict() for request in requests])
+
+
+# ---------------------------------- Get Requests for Specific Staff ----------------------------------
+
+@app.route('/request/staff/<int:staff_id>', methods=['GET'])
+def get_staff_requests(staff_id):
+    staff_requests = RequestModel.query.filter_by(staff_id=staff_id).all()
+    if not staff_requests:
+        return jsonify({'message': 'No requests found for this staff member.'}), 404
+    return jsonify([request.to_dict() for request in staff_requests]), 200
+
+
+# ---------------------------------- Get specific Requests by request_id ----------------------------------
+@app.route('/request/<int:request_id>', methods=['GET'])
+def get_request(request_id):
+    request = RequestModel.query.get(request_id)
+    if not request:
+        return jsonify({'message': 'Request not found'}), 404
+    return jsonify(request.to_dict()), 200
 
 # ---------------------------------- Add Request ----------------------------------
 
@@ -506,6 +526,90 @@ def cancel_request(request_id):
         return jsonify({'message': 'Request canceled, but an error occurred while updating schedule.', 'error': str(e)}), 500
 
     return jsonify({'message': 'Request canceled successfully.'}), 200
+
+
+# ---------------------------------- Update Requests ----------------------------------
+@app.route('/request/update/<int:request_id>', methods=['PUT'])
+def update_request(request_id):
+    print(f"Received update request for request_id: {request_id}")
+    # Retrieve custom headers
+    role = request.headers.get('X-Role')
+    client_staff_id = request.headers.get('X-Staff-ID')
+    client_department = request.headers.get('X-Department')
+
+    # Validate the presence of necessary headers
+    if not role or not client_staff_id or not client_department:
+        return jsonify({'message': 'Missing authentication headers.'}), 400
+
+    # Convert role and client_staff_id to integers
+    try:
+        role = int(role)
+        client_staff_id = int(client_staff_id)
+    except ValueError:
+        return jsonify({'message': 'Invalid data types for role or staff ID.'}), 400
+
+    # Fetch the request object
+    request_obj = RequestModel.query.get(request_id)
+
+    if not request_obj:
+        return jsonify({'message': 'Request not found.'}), 404
+
+    # Authorization check
+    if role == 2 and request_obj.staff_id != client_staff_id:
+        return jsonify({'message': 'Unauthorized to update this request.'}), 403
+    elif role == 1 and request_obj.department != client_department:
+        return jsonify({'message': 'Unauthorized to update request from different department.'}), 403
+    # Get data from request body
+    data = request.get_json()
+
+    # Update the request object with new data
+    try:
+        request_obj.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        request_obj.duration = data['duration']
+        request_obj.reason = data['reason']
+        
+        # Update status if it was previously approved
+        if request_obj.status == 'Approved' and data.get('status') == 'Pending':
+            request_obj.status = 'Pending'
+
+        db.session.commit()
+        print(f"Request {request_id} updated successfully")
+        return jsonify({
+            'message': 'Request updated successfully.',
+            'request': request_obj.to_dict()
+        }), 200
+    except Exception as e:
+        print(f"Error updating request {request_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'message': f'Error updating request: {str(e)}'}), 500
+
+    # # Communicate with the Schedule microservice to update the schedule
+    # schedule_update_url = "http://localhost:5004/schedule/update"
+    # schedule_update_data = {
+    #     'staff_id': request_obj.staff_id,
+    #     'date': request_obj.start_date.isoformat(),
+    #     'department': request_obj.department,
+    #     'status': request_obj.status,
+    #     'duration': request_obj.duration
+    # }
+
+    # try:
+    #     response = requests.post(schedule_update_url, json=schedule_update_data)
+    #     if response.status_code != 200:
+    #         print(f"Schedule microservice responded with status code {response.status_code}")
+    #         return jsonify({'message': 'Request updated, but failed to update schedule.'}), 500
+    # except Exception as e:
+    #     print(f"Exception occurred while updating schedule: {e}")
+    #     return jsonify({
+    #         'message': 'Request updated, but an error occurred while updating schedule.',
+    #         'error': str(e)
+    #     }), 500
+
+    # return jsonify({
+    #     'message': 'Request updated successfully.',
+    #     'request': request_obj.to_dict()
+    # }), 200
+
 
 # ---------------------------------- Main ----------------------------------
 
