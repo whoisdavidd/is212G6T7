@@ -30,7 +30,6 @@ def close_connection(connection):
     if connection:
         connection.close()
 
-# Example usage
 if __name__ == "__main__":
     connection, channel = setup_rabbitmq_connection()  # Capture both connection and channel
     message = "Hello, this is a persistent message!"  # Example message
