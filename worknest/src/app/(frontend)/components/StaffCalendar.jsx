@@ -90,11 +90,12 @@ export default function StaffCalendar() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const staff_id = sessionStorage.getItem("staff_id");
 
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const response = await fetch(`http://localhost:5003/request`);
+        const response = await fetch(`http://localhost:5003/request/staff/${staff_id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch requests');
         }
