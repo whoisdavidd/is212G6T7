@@ -48,52 +48,47 @@ const ManagerTable = () => {
     const [sortConfig, setSortConfig] = useState({ key: 'staff_name', direction: 'asc' });
     const [filters, setFilters] = useState({
         name: '',
-        role: '',
+        position: '',
         workLocation: '',
-        from: '',
-        to: '',
+        country: ''
     });
-    const [employees, setEmployees] = useState([]);
-    const [error, setError] = useState(null);
-    const [open, setOpen] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState(null);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
+    const [employees, setEmployees] = useState([]); // State to hold employee data
+    const [managerId, setManagerId] = useState(null); // State to hold manager ID
+    const [departmentName, setDepartmentName] = useState('Department Name');
 
-    const fetchEmployees = async (retryCount = 3) => {
-        const managerId = sessionStorage.getItem('staff_id');
-        if (!managerId) {
-            setError('Manager ID not found. Please log in again.');
-            return;
-        }
-        try {
-            const response = await fetch(`http://localhost:5003/manager_requests/${managerId}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            setEmployees(data);
-            setError(null);
-        } catch (error) {
-            if (retryCount > 0) {
-                setTimeout(() => fetchEmployees(retryCount - 1), 1000);
-            } else {
-                console.error('Error fetching employees:', error);
-                setError(error.message);
-            }
-        }
-    };
-
+    // Fetch employee data from the API
     useEffect(() => {
-        fetchEmployees();
+        const storedManagerId = 140879;  // Set dynamically or from localStorage
+        setManagerId(storedManagerId);
+
+        const fetchEmployees = async () => {
+            try {
+                const response = await fetch(`http://127.0.0.1:5002/managers/${storedManagerId}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.code === 200) {
+                    setEmployees(data.data.employees);  // Now the data is coming from data.data.employees
+                    setDepartmentName(data.data.department);
+                } else {
+                    console.error("Failed to fetch employees:", data.message);
+                }
+            } catch (error) {
+                console.error("Error fetching employees:", error);
+            }
+        };
+
+        if (storedManagerId) {
+            fetchEmployees();
+        }
     }, []);
 
     const handleSort = (column) => {
@@ -102,6 +97,11 @@ const ManagerTable = () => {
     };
 
     const sortedEmployees = [...employees].sort((a, b) => {
+        // Ensure WFH employees are sorted at the top
+        if (a.location === 'WFH' && b.location !== 'WFH') return -1;
+        if (a.location !== 'WFH' && b.location === 'WFH') return 1;
+
+        // After sorting by WFH, apply regular sorting based on the selected column
         if (a[sortConfig.key] < b[sortConfig.key]) {
             return sortConfig.direction === 'asc' ? -1 : 1;
         }
@@ -112,18 +112,11 @@ const ManagerTable = () => {
     });
 
     const filteredEmployees = sortedEmployees.filter(employee => {
-        const employeeFromDate = new Date(employee.from_date).getTime();
-        const employeeToDate = new Date(employee.to_date).getTime();
-
-        const filterFromDate = filters.from ? new Date(filters.from).getTime() : null;
-        const filterToDate = filters.to ? new Date(filters.to).getTime() : null;
-
         return (
-            (filters.name ? employee.staff_name.toLowerCase().includes(filters.name.toLowerCase()) : true) &&
-            (filters.role ? employee.role.toLowerCase().includes(filters.role.toLowerCase()) : true) &&
-            (filters.workLocation ? employee.work_location.toLowerCase().includes(filters.workLocation.toLowerCase()) : true) &&
-            (filterFromDate ? employeeFromDate >= filterFromDate : true) &&
-            (filterToDate ? employeeToDate <= filterToDate : true)
+            (filters.name ? `${employee.staff_fname} ${employee.staff_lname}`.toLowerCase().includes(filters.name.toLowerCase()) : true) &&
+            (filters.position ? employee.position.toLowerCase().includes(filters.position.toLowerCase()) : true) &&
+            (filters.workLocation ? employee.location.toLowerCase().includes(filters.workLocation.toLowerCase()) : true) &&
+            (filters.country ? employee.country.toLowerCase().includes(filters.country.toLowerCase()) : true)
         );
     });
 
@@ -137,30 +130,10 @@ const ManagerTable = () => {
     const handleClearFilters = () => {
         setFilters({
             name: '',
-            role: '',
+            position: '',
             workLocation: '',
-            from: '',
-            to: '',
+            country: '',
         });
-    };
-
-    const handleChangePage = (event, newPage) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    const handleRowClick = (employee) => {
-        setSelectedEmployee(employee);
-        setOpen(true);
-    };
-
-    const handleClose = () => {
-        setOpen(false);
-        setSelectedEmployee(null);
     };
 
     const filterOptions = [
@@ -172,152 +145,34 @@ const ManagerTable = () => {
             fullWidth: true,
         },
         {
-            key: 'role',
-            label: 'Role',
-            options: [...new Set(employees.map(employee => employee.role))],
-            value: filters.role,
+            key: 'position',
+            label: 'Position',
+            options: [...new Set(employees.map(employee => employee.position))],
+            value: filters.position,
             fullWidth: true,
         },
         {
             key: 'workLocation',
             label: 'Work Location',
-            options: [...new Set(employees.map(employee => employee.work_location))],
+            options: [...new Set(employees.map(employee => employee.location))],
             value: filters.workLocation,
             fullWidth: true,
         },
         {
-            key: 'from',
-            label: 'From Date',
-            options: [],
-            value: filters.from,
-            fullWidth: false,
-            type: 'date',
-        },
-        {
-            key: 'to',
-            label: 'To Date',
-            options: [],
-            value: filters.to,
-            fullWidth: false,
-            type: 'date',
-        },
+            key: 'country',
+            label: 'Country',
+            options: [...new Set(employees.map(employee => employee.country))],
+            value: filters.country,
+            fullWidth: true,
+        }
     ];
 
-    const formatDate = (dateString) => {
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString(undefined, options);
-    };
-
-    const renderActions = (params) => {
-        const { status, request_id, staff_id } = params.row;
-        const role = sessionStorage.getItem('role');
-        const currentStaffId = sessionStorage.getItem('staff_id');
-
-        const isAuthorized = (role == 2 && staff_id == currentStaffId) || role == 3; // Staff or Manager
-
-        return (
-            <div>
-                {isAuthorized && status === 'Pending' && (
-                    <Button
-                        variant="contained"
-                        color="secondary"
-                        onClick={() => handleCancelClick(request_id)}
-                    >
-                        Cancel
-                    </Button>
-                )}
-                {isAuthorized && status === 'Approved' && (
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => handleWithdrawClick(request_id)}
-                    >
-                        Withdraw
-                    </Button>
-                )}
-            </div>
-        );
-    };
-
-    const handleWithdrawClick = async (request_id) => {
-        const originalEmployees = [...employees];
-        setEmployees(employees.map(emp => (
-            emp.request_id === request_id ? { ...emp, status: 'Withdrawn' } : emp
-        )));
-        try {
-            const role = sessionStorage.getItem('role');
-            const staffId = sessionStorage.getItem('staff_id');
-            const department = sessionStorage.getItem('department');
-
-            if (!role || !staffId || !department) {
-                toast.error("User session is invalid. Please log in again.");
-                return;
-            }
-
-            const response = await fetch(`http://localhost:5003/requests/${request_id}/withdraw`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Role': role,
-                    'X-Staff-ID': staffId,
-                    'X-Department': department,
-                },
-                credentials: 'include',
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                toast.success("Request withdrawn successfully.");
-            } else {
-                setEmployees(originalEmployees);
-                toast.error(`Error: ${data.message}`);
-            }
-        } catch (error) {
-            setEmployees(originalEmployees);
-            toast.error("An unexpected error occurred. Please try again.");
-        }
-    };
-
-    const handleCancelClick = async (request_id) => {
-        const originalEmployees = [...employees];
-        setEmployees(employees.map(emp => (
-            emp.request_id === request_id ? { ...emp, status: 'Cancelled' } : emp
-        )));
-        try {
-            const role = sessionStorage.getItem('role');
-            const staffId = sessionStorage.getItem('staff_id');
-            const department = sessionStorage.getItem('department');
-
-            if (!role || !staffId || !department) {
-                toast.error("User session is invalid. Please log in again.");
-                return;
-            }
-
-            const response = await fetch(`http://localhost:5003/requests/${request_id}/cancel`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Role': role,
-                    'X-Staff-ID': staffId,
-                    'X-Department': department,
-                },
-                credentials: 'include',
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                toast.success("Request canceled successfully.");
-            } else {
-                setEmployees(originalEmployees);
-                toast.error(`Error: ${data.message}`);
-            }
-        } catch (error) {
-            setEmployees(originalEmployees);
-            toast.error("An unexpected error occurred. Please try again.");
-        }
-    };
-
     return (
+        <>
+        <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
+        Employees ({departmentName})
+        </h3>
+
         <div className="table-container">
             {error && (
                 <Typography variant="h6" color="error" sx={{ mb: 2 }}>
@@ -354,54 +209,40 @@ const ManagerTable = () => {
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'role'}
-                                    direction={sortConfig.key === 'role' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('role')}
+                                    active={sortConfig.key === 'position'}
+                                    direction={sortConfig.key === 'position' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('position')}
                                 >
-                                    <strong>Role</strong>
+                                    <strong>Position</strong>
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'work_location'}
-                                    direction={sortConfig.key === 'work_location' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('work_location')}
+                                    active={sortConfig.key === 'location'}
+                                    direction={sortConfig.key === 'location' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('location')}
                                 >
                                     <strong>Work Location</strong>
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
-                                    active={sortConfig.key === 'from_date'}
-                                    direction={sortConfig.key === 'from_date' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('from_date')}
+                                    active={sortConfig.key === 'country'}
+                                    direction={sortConfig.key === 'country' ? sortConfig.direction : 'asc'}
+                                    onClick={() => handleSort('country')}
                                 >
-                                    <strong>From</strong>
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'to_date'}
-                                    direction={sortConfig.key === 'to_date' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('to_date')}
-                                >
-                                    <strong>To</strong>
+                                    <strong>Country</strong>
                                 </TableSortLabel>
                             </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {(rowsPerPage > 0
-                            ? filteredEmployees.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                            : filteredEmployees
-                        ).map((employee) => (
-                            <TableRow key={employee.staff_id} hover onClick={() => handleRowClick(employee)} style={{ cursor: 'pointer' }}>
-                                <TableCell>{employee.staff_name || 'N/A'}</TableCell>
-                                <TableCell>{employee.role || 'N/A'}</TableCell>
-                                <TableCell>{employee.work_location || 'N/A'}</TableCell>
-                                <TableCell>{formatDate(employee.from_date) || 'N/A'}</TableCell>
-                                <TableCell>{formatDate(employee.to_date) || 'N/A'}</TableCell>
-                                <TableCell align="right">{renderActions(employee)}</TableCell>
+                        {filteredEmployees.map((employee) => (
+                            <TableRow key={employee.staff_id}>
+                                <TableCell>{`${employee.staff_fname} ${employee.staff_lname}`}</TableCell>
+                                <TableCell>{employee.position}</TableCell>
+                                <TableCell>{employee.location}</TableCell>
+                                <TableCell>{employee.country}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -458,6 +299,7 @@ const ManagerTable = () => {
             </Modal>
             <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />
         </div>
+        </>
     );
 };
 

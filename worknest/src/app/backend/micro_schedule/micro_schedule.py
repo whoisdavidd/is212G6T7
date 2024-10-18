@@ -30,20 +30,21 @@ class Schedule(db.Model):
     __tablename__ = "schedule"
     
     staff_id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.String(50), nullable=False)
+    date = db.Column(db.Date, nullable=False)
     department = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     
     def __init__(self, staff_id, date, department, status):
         self.staff_id = staff_id
-        self.date = date
+        self.date = datetime.strptime(date, "%Y-%m-%d").date() if isinstance(date, str) else date
         self.department = department
         self.status = status
+
 
     def to_dict(self):
         return {
             'staff_id': self.staff_id,
-            'date': self.date,
+            'date': self.date.strftime("%Y-%m-%d") if self.date else None,
             'department': self.department,
             'status': self.status
         }
@@ -231,3 +232,4 @@ def get_schedule(staff_id):
 
 if __name__ == '__main__':
     app.run(port=5004, debug=True)
+

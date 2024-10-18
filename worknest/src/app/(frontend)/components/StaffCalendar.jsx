@@ -8,78 +8,80 @@ export default function StaffCalendar({ onViewChange }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewType, setViewType] = useState('personal'); // 'personal' or 'team'
-
-  const fetchRequests = async (type) => {
-    try {
-      const staffId = sessionStorage.getItem('staff_id');
-      const managerId = sessionStorage.getItem('manager_id');
-      const url = type === 'personal'
-        ? `http://localhost:5003/requests/${staffId}`
-        : `http://localhost:5003/manager_requests/${managerId}`;
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      console.log('Fetched data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch requests');
-      }
-
-      if (!Array.isArray(data)) {
-        throw new Error('Expected an array of requests');
-      }
-
-      const mappedEvents = data
-        .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled')
-        .map(request => {
-          const startDateStr = type === 'personal' ? request.start_date : request.from_date;
-          const endDateStr = type === 'personal' ? request.start_date : request.to_date;
-
-          if (!startDateStr || !endDateStr) {
-            console.error('Missing date:', request);
-            return null;
-          }
-
-          const startDate = new Date(startDateStr);
-          const endDate = new Date(endDateStr);
-
-          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            console.error('Invalid date:', startDateStr, endDateStr);
-            return null;
-          }
-
-          return {
-            id: String(request.staff_id),
-            title: `${request.reason || request.work_location} - ${request.status}`,
-            start: startDate.toISOString().split('T')[0],
-            end: endDate.toISOString().split('T')[0],
-            extendedProps: {
-              type: (request.reason || request.work_location).toLowerCase() === 'wfh' ? 'wfh' : 'general',
-              status: request.status
-            }
-          };
-        })
-        .filter(event => event !== null); // Filter out invalid events
-
-      setEvents(mappedEvents);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching requests:', error);
-      setError(error.message);
-      setLoading(false);
-    }
-  };
+//   const staff_id = sessionStorage.getItem("staff_id");
+  const [staffId, setStaffId] = useState(null); 
 
   useEffect(() => {
-    fetchRequests(viewType);
-  }, [viewType]);
+    // Ensure sessionStorage is available only in the client
+    if (typeof window !== 'undefined') {
+      const storedStaffId = sessionStorage.getItem('staff_id');
+      setStaffId(storedStaffId);
+    }
+  }, []);
 
-  const handleViewChange = (type) => {
-    setViewType(type);
-    onViewChange(type);
-  };
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await fetch(`http://localhost:5003/request/staff/${staff_id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch requests');
+        }
+        const data = await response.json();
+        console.log('API Response Data:', data);
+
+        // Map requests to events format for FullCalendar
+        const mappedEvents = data
+          .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled')
+          .flatMap(request => {
+            const startDate = new Date(request.start_date);
+            const duration = request.duration || 1; // Default to 1 day if duration is not provided
+            const recurringDays = request.recurring_days || []; // Ensure this is an array
+
+            // Generate events for recurring days
+            return recurringDays.flatMap(day => {
+              const eventsForDays = [];
+
+              // Loop to generate events for the next 4 weeks (adjust as necessary)
+              for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
+                const eventDate = new Date(startDate);
+                // Calculate the day for this week offset
+                const daysUntilNextOccurrence = (day + 7 * weekOffset) - startDate.getDay();
+                eventDate.setDate(startDate.getDate() + daysUntilNextOccurrence);
+
+                // Only add if the eventDate is valid (after the start date)
+                if (eventDate >= startDate) {
+                  const endDate = new Date(eventDate);
+                  endDate.setDate(eventDate.getDate() + duration); // Calculate end date based on duration
+
+                  eventsForDays.push({
+                    id: String(request.staff_id),
+                    title: `${request.reason} - ${request.status}`,
+                    start: eventDate.toISOString().split('T')[0], // Format to 'YYYY-MM-DD'
+                    end: endDate.toISOString().split('T')[0],
+                    extendedProps: {
+                      type: request.reason.toLowerCase() === 'wfh' ? 'wfh' : 'general',
+                      status: request.status,
+                    },
+                  });
+                }
+              }
+
+              return eventsForDays;
+            });
+          });
+
+        console.log('Mapped Events:', mappedEvents);
+        setEvents(mappedEvents);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching requests:', error);
+        setError(error.message);
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [staffId]);
 
   if (loading) return <div>Loading requests...</div>;
   if (error) return <div>Error: {error}</div>;
