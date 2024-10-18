@@ -10,7 +10,6 @@ import requests
 
 load_dotenv()
 
-db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
 CORS(app)
@@ -49,7 +48,7 @@ class Schedule(db.Model):
             'status': self.status
         }
     
-# ------------------------------ Create a schedule ------------------------------
+# ------------------------------ Create or Update a Schedule ------------------------------
 
 @app.route('/schedules', methods=['POST'])
 def create_or_update_schedule():
@@ -108,7 +107,7 @@ def create_or_update_schedule():
         return jsonify({"error": "Failed to create or update schedule"}), 500
     
 
-# ------------------------------ Update a schedule ------------------------------
+# ------------------------------ Update a Schedule ------------------------------
 
 @app.route('/schedules/<int:staff_id>', methods=['PUT'])
 def update_schedule(staff_id):
@@ -146,7 +145,7 @@ def update_schedule(staff_id):
         return jsonify({"error": "Failed to update schedule"}), 500
     
 
-# ------------------------------ Get all schedules ------------------------------
+# ------------------------------ Get All Schedules ------------------------------
 
 @app.route('/schedules', methods=['GET'])
 def get_schedules():
@@ -198,7 +197,7 @@ def get_schedules():
         return jsonify({"error": "Failed to fetch schedules"}), 500
     
 
-# ------------------------------ Get a schedule by staff_id ------------------------------
+# ------------------------------ Get a Schedule by Staff ID ------------------------------
 
 @app.route('/schedules/<int:staff_id>', methods=['GET'])
 def get_schedule(staff_id):
@@ -220,12 +219,12 @@ def get_schedule(staff_id):
     """
     logger.info(f"Request received to fetch schedule for staff_id {staff_id}.")
     try:
-        schedule = Schedule.query.filter_by(staff_id=staff_id).first()
+        schedule = Schedule.query.filter_by(staff_id=staff_id).all()
         if schedule:
             logger.info(f"Fetched schedule for staff_id {staff_id}.")
-            return jsonify(schedule.to_dict()), 200
+            return jsonify([s.to_dict() for s in schedule]), 200
         logger.warning(f"Schedule for staff_id {staff_id} not found.")
-        return jsonify({"message": "Schedule not found"}), 404
+        return jsonify([]), 200  # Return an empty array if not found
     except Exception as e:
         logger.error(f"Error fetching schedule: {str(e)}")
         return jsonify({"error": "Failed to fetch schedule"}), 500

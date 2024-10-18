@@ -3,10 +3,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Button, ButtonGroup } from '@mui/material';
-import { useRouter } from 'next/navigation';
 
-export default function StaffCalendar() {
-  const router = useRouter();
+export default function StaffCalendar({ onViewChange }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,12 +77,8 @@ export default function StaffCalendar() {
   }, [viewType]);
 
   const handleViewChange = (type) => {
-    if (type === 'personal') {
-      setViewType('personal');
-    } else {
-      // Navigate to the StaffViewRequests page
-      router.push('/Staff/viewRequests');
-    }
+    setViewType(type);
+    onViewChange(type);
   };
 
   if (loading) return <div>Loading requests...</div>;
@@ -93,8 +87,8 @@ export default function StaffCalendar() {
   return (
     <>
       <ButtonGroup variant="contained" aria-label="outlined primary button group">
-        <Button onClick={() => setViewType('personal')}>Personal Schedule</Button>
-        <Button onClick={() => setViewType('team')}>Team Schedule</Button>
+        <Button onClick={() => handleViewChange('personal')}>Personal Schedule</Button>
+        <Button onClick={() => handleViewChange('team')}>Team Schedule</Button>
       </ButtonGroup>
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
@@ -108,7 +102,6 @@ export default function StaffCalendar() {
   );
 }
 
-// Render event content in the calendar
 function renderEventContent(eventInfo) {
   const { event } = eventInfo;
   const isWfh = event.extendedProps.type === 'wfh';
@@ -120,7 +113,4 @@ function renderEventContent(eventInfo) {
       {isWfh && status && <div>Status: {status}</div>}
     </>
   );
-
 }
-
-

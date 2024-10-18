@@ -2,6 +2,7 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import { DataGrid } from '@mui/x-data-grid';
 import { Typography } from '@mui/material';
+import Button from '@mui/material/Button';
 
 export default function StaffViewTeamSchedule() {
   const [rows, setRows] = React.useState([]);
@@ -10,7 +11,6 @@ export default function StaffViewTeamSchedule() {
   const staffId = sessionStorage.getItem('staff_id');
   const department = sessionStorage.getItem('department');
 
-  // Fetch schedule data from the Flask backend
   React.useEffect(() => {
     const fetchSchedules = async () => {
       if (!staffId) {
@@ -19,20 +19,24 @@ export default function StaffViewTeamSchedule() {
         return;
       }
       try {
-        const response = await fetch(`http://localhost:5004/schedules?staff_id=${staffId}`);
+        const response = await fetch(`http://localhost:5004/schedules/${staffId}`);
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch schedules');
         }
         const data = await response.json();
-        const formattedData = data.map((item) => ({
-          id: `${item.staff_id}-${item.date}`,
-          staff_id: item.staff_id,
-          department: item.department,
-          start_date: item.date,
-          status: item.status,
-        }));
-        setRows(formattedData);
+        if (data.length === 0) {
+          setError('No schedules found.');
+        } else {
+          const formattedData = data.map((item) => ({
+            id: `${item.staff_id}-${item.date}`,
+            staff_id: item.staff_id,
+            department: item.department,
+            start_date: item.date,
+            status: item.status,
+          }));
+          setRows(formattedData);
+        }
       } catch (error) {
         console.error('Error fetching schedule data:', error);
         setError('Failed to fetch schedules. Please try again later.');
@@ -48,6 +52,29 @@ export default function StaffViewTeamSchedule() {
     { field: 'department', headerName: 'Department', width: 150 },
     { field: 'start_date', headerName: 'Start Date', width: 150 },
     { field: 'status', headerName: 'Status', width: 120 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 150,
+      renderCell: (params) => {
+        const { staff_id, status } = params.row;
+        const currentStaffId = sessionStorage.getItem('staff_id');
+
+        return (
+          <div>
+            {staff_id === currentStaffId && status === 'Pending' && (
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => handleCancelClick(params.row.request_id)}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
   ];
 
   if (loading) return <Typography>Loading schedules...</Typography>;

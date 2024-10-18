@@ -38,13 +38,13 @@ class RequestModel(db.Model):
     reason = db.Column(db.String(50), nullable=False)
     duration = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), nullable=False)
-    reporting_manager_id = db.Column(db.Integer, nullable=False)
-    reporting_manager_name = db.Column(db.String(50), nullable=False)
-    reporting_manager_email = db.Column(db.String(50), nullable=False)
-    requester_email = db.Column(db.String(50), nullable=False)
-    day_id = db.Column(db.Integer, nullable=True)  # Allowing null values
-    recurring_days = db.Column(db.Integer, nullable=True)  # Allowing null values
-    approver_comment = db.Column(db.String(50), nullable=True)  # Allowing null values
+    reporting_manager_id = db.Column(db.Integer)
+    reporting_manager_name = db.Column(db.String(50))
+    reporting_manager_email = db.Column(db.String(50))
+    requester_email = db.Column(db.String(50))
+    day_id = db.Column(db.Integer)
+    recurring_days = db.Column(db.Integer)
+    approver_comment = db.Column(db.String(255))
     
     def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, reporting_manager_email, requester_email, day_id=None, recurring_days=None, approver_comment=None):
         self.staff_id = staff_id
@@ -57,35 +57,27 @@ class RequestModel(db.Model):
         self.reporting_manager_name = reporting_manager_name
         self.reporting_manager_email = reporting_manager_email
         self.requester_email = requester_email
-        self.reporting_manager_email = reporting_manager_email
-        self.requester_email = requester_email
         self.day_id = day_id
         self.recurring_days = recurring_days
         self.approver_comment = approver_comment
-        self.approver_comment = approver_comment
         
     def to_dict(self):
-        return {
-            'request_id': self.request_id,
-            'staff_id': self.staff_id,
-            'department': self.department,
-            'start_date': self.start_date,
-            'reason': self.reason,
-            'duration': self.duration,
-            'status': self.status,
-            'status': self.status,
-            'reporting_manager_id': self.reporting_manager_id,
-            'reporting_manager_name': self.reporting_manager_name,
-            'reporting_manager_email': self.reporting_manager_email,
-            'requester_email': self.requester_email,
-            'reporting_manager_email': self.reporting_manager_email,
-            'requester_email': self.requester_email,
-            'day_id': self.day_id,
-            'recurring_days': self.recurring_days,
-            'approver_comment': self.approver_comment,
-            'recurring_days': self.recurring_days,
-            'approver_comment': self.approver_comment
-        }
+      return {
+          'request_id': self.request_id,
+          'staff_id': self.staff_id,
+          'department': self.department,
+          'start_date': self.start_date,
+          'reason': self.reason,
+          'duration': self.duration,
+          'status': self.status,
+          'reporting_manager_id': self.reporting_manager_id,
+          'reporting_manager_name': self.reporting_manager_name,
+          'reporting_manager_email': self.reporting_manager_email,
+          'requester_email': self.requester_email,
+          'day_id': self.day_id,
+          'recurring_days': self.recurring_days,
+          'approver_comment': self.approver_comment
+      }
 
 
 # ------------------------------ Get all requests ------------------------------
@@ -137,24 +129,102 @@ def get_all_requests():
         logger.error(f"[GET] /requests - Error fetching requests: {str(e)}")
         return jsonify({'error': 'Failed to fetch requests'}), 500
     
+    
+# ------------------------------ Add a request ------------------------------
 
-# ---------------------------------- Add Request ----------------------------------
+@app.route('/requests', methods=['POST'])
+def add_request():
+    """
+    Add a request
+    ---
+    responses:
+      201:
+        description: Request added successfully
+        schema:
+          type: object
+          properties:
+            request_id:
+              type: integer
+            staff_id:
+              type: integer
+            department:
+              type: string
+            start_date:
+              type: string
+            reason:
+              type: string
+            duration:
+              type: integer
+            status:
+              type: string
+            reporting_manager_id:
+              type: integer
+            reporting_manager_name:
+              type: string
+            reporting_manager_email:
+              type: string
+            requester_email:
+              type: string
+            day_id:
+              type: integer
+            recurring_days:
+              type: array
+              items:
+                type: integer
+            approver_comment:
+              type: string
+      500:
+        description: Failed to add request
+    """
+    logger.info("[POST] /requests - Received request to add a new request.")
+    try:
+        data = request.get_json()
+        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        duration = (end_date - start_date).days
 
-@app.route('/request/staff/<int:staff_id>', methods=['GET'])
-def get_staff_requests(staff_id):
-    staff_requests = RequestModel.query.filter_by(staff_id=staff_id).all()
-    if not staff_requests:
-        return jsonify({'message': 'No requests found for this staff member.'}), 404
-    return jsonify([request.to_dict() for request in staff_requests]), 200
+        if duration < 0:
+            logger.warning("[POST] /requests - End date is before start date.")
+            return jsonify({'error': 'End date must be after start date.'}), 400
 
+        # Ensure recurring_days is an array
+        recurring_days = data.get('recurring_days', [])
+        if isinstance(recurring_days, int):
+            recurring_days = [recurring_days]
 
-# ---------------------------------- Get specific Requests by request_id ----------------------------------
-@app.route('/request/<int:request_id>', methods=['GET'])
-def get_request(request_id):
-    request = RequestModel.query.get(request_id)
-    if not request:
-        return jsonify({'message': 'Request not found'}), 404
-    return jsonify(request.to_dict()), 200
+        # Check for missing keys and provide defaults if necessary
+        reporting_manager_email = data.get('reporting_manager_email', '')
+        requester_email = data.get('requester_email', '')
+
+        new_request = RequestModel(
+            staff_id=data['staff_id'],
+            department=data['department'],
+            start_date=data['start_date'],
+            reason=data['reason'],
+            duration=duration,
+            status='Pending',
+            reporting_manager_id=data['reporting_manager_id'],
+            reporting_manager_name=data['reporting_manager_name'],
+            reporting_manager_email=reporting_manager_email,
+            requester_email=requester_email,
+            day_id=data.get('day_id', 0),
+            recurring_days=recurring_days,
+            approver_comment=data.get('approver_comment', '')
+        )
+        db.session.add(new_request)
+        db.session.commit()
+        logger.info(f"[POST] /requests - Successfully added new request for staff_id {data['staff_id']}.")
+        return jsonify(new_request.to_dict()), 201
+    except KeyError as ke:
+        logger.error(f"[POST] /requests - Missing key: {str(ke)}")
+        return jsonify({'error': f'Missing key: {str(ke)}'}), 400
+    except ValueError as ve:
+        logger.error(f"[POST] /requests - Date format error: {str(ve)}")
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+    except Exception as e:
+        logger.error(f"[POST] /requests - Error adding request: {str(e)}")
+        return jsonify({'error': 'Failed to add request'}), 500
+
 
 # ------------------------------ Get all requests by staff_id ------------------------------
 
@@ -346,102 +416,6 @@ def calculate_to_date(from_date, duration):
         logger.error(f"[CALCULATE] - Error calculating to_date: {str(e)}")
         return from_date
 
-
-# ------------------------------ Add a request ------------------------------
-
-@app.route('/requests', methods=['POST'])
-def add_request():
-    """
-    Add a request
-    ---
-    responses:
-      201:
-        description: Request added successfully
-        schema:
-          type: object
-          properties:
-            request_id:
-              type: integer
-            staff_id:
-              type: integer
-            department:
-              type: string
-            start_date:
-              type: string
-            reason:
-              type: string
-            duration:
-              type: integer
-            status:
-              type: string
-            reporting_manager_id:
-              type: integer
-            reporting_manager_name:
-              type: string
-            reporting_manager_email:
-              type: string
-            requester_email:
-              type: string
-            day_id:
-              type: integer
-            recurring_days:
-              type: array
-              items:
-                type: integer
-            approver_comment:
-              type: string
-      500:
-        description: Failed to add request
-    """
-    logger.info("[POST] /requests - Received request to add a new request.")
-    try:
-        data = request.get_json()
-        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
-        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-        duration = (end_date - start_date).days + 1
-
-        if duration < 0:
-            logger.warning("[POST] /requests - End date is before start date.")
-            return jsonify({'error': 'End date must be after start date.'}), 400
-
-        # Ensure recurring_days is an array
-        recurring_days = data.get('recurring_days', [])
-        if isinstance(recurring_days, int):
-            recurring_days = [recurring_days]
-
-        # Check for missing keys and provide defaults if necessary
-        reporting_manager_email = data.get('reporting_manager_email', '')
-        requester_email = data.get('requester_email', '')
-
-        new_request = RequestModel(
-            staff_id=data['staff_id'],
-            department=data['department'],
-            start_date=data['start_date'],
-            reason=data['reason'],
-            duration=duration,
-            status='Pending',
-            reporting_manager_id=data['reporting_manager_id'],
-            reporting_manager_name=data['reporting_manager_name'],
-            reporting_manager_email=reporting_manager_email,
-            requester_email=requester_email,
-            day_id=data.get('day_id', 0),
-            recurring_days=recurring_days,
-            approver_comment=data.get('approver_comment', '')
-        )
-        db.session.add(new_request)
-        db.session.commit()
-        logger.info(f"[POST] /requests - Successfully added new request for staff_id {data['staff_id']}.")
-        return jsonify(new_request.to_dict()), 201
-    except KeyError as ke:
-        logger.error(f"[POST] /requests - Missing key: {str(ke)}")
-        return jsonify({'error': f'Missing key: {str(ke)}'}), 400
-    except ValueError as ve:
-        logger.error(f"[POST] /requests - Date format error: {str(ve)}")
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
-    except Exception as e:
-        logger.error(f"[POST] /requests - Error adding request: {str(e)}")
-        return jsonify({'error': 'Failed to add request'}), 500
-    
 
 # ------------------------------ Withdraw a request ------------------------------
 
@@ -645,11 +619,6 @@ def update_request(request_id):
         db.session.rollback()
         return jsonify({'message': f'Error updating request: {str(e)}'}), 500
 
-# Helper function to check if a manager is a direct manager or superior
-def is_manager_or_superior(manager_id, staff_id):
-    # Implement logic to check if the manager_id is a direct manager or superior of staff_id
-    # This might involve querying a database or another service
-    return True  # Placeholder logic
 
 if __name__ == '__main__':
     app.run(port=5003, debug=True)

@@ -11,33 +11,36 @@ export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-  const staff_id = sessionStorage.getItem("staff_id"); // Assuming this will be used for future actions
+  const staff_id = sessionStorage.getItem("staff_id");
 
-  // Fetch event data from the Flask backend
   const fetchEventData = async (retryCount = 3) => {
     try {
-      const response = await fetch(`http://localhost:5003/requests`);
+      const response = await fetch(`http://localhost:5003/requests/${staff_id}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch requests');
       }
       const data = await response.json();
-      const formattedData = data.map((item) => {
-        const date = new Date(item.start_date);
-        const formattedDate = date.toISOString().split('T')[0];
-        return {
-          request_id: item.request_id,
-          staff_id: item.staff_id,
-          department: item.department,
-          start_date: formattedDate,
-          reason: item.reason,
-          duration: item.duration,
-          status: item.status,
-          reporting_manager_id: item.reporting_manager_id,
-          reporting_manager_name: item.reporting_manager_name,
-        };
-      });
-      setRows(formattedData);
+      if (data.length === 0) {
+        setError('No requests found.');
+      } else {
+        const formattedData = data.map((item) => {
+          const date = new Date(item.start_date);
+          const formattedDate = date.toISOString().split('T')[0];
+          return {
+            request_id: item.request_id,
+            staff_id: item.staff_id,
+            department: item.department,
+            start_date: formattedDate,
+            reason: item.reason,
+            duration: item.duration,
+            status: item.status,
+            reporting_manager_id: item.reporting_manager_id,
+            reporting_manager_name: item.reporting_manager_name,
+          };
+        });
+        setRows(formattedData);
+      }
       setLoading(false);
     } catch (error) {
       if (retryCount > 0) {
@@ -62,7 +65,7 @@ export default function FullFeaturedCrudGrid() {
       headerName: 'Start Date',
       width: 180,
       valueFormatter: (params) => {
-        return params.value; // Return the formatted string directly
+        return params.value;
       },
     },
     { field: 'reason', headerName: 'Reason', width: 150 },
@@ -108,25 +111,14 @@ export default function FullFeaturedCrudGrid() {
 
         return (
           <div>
-            {
-              <EditButton 
-                requestId={request_id} 
-                onRequestUpdate={handleRequestUpdate} 
-                currentStatus={status}
-              />
-            }
+            <EditButton 
+              requestId={request_id} 
+              onRequestUpdate={handleRequestUpdate} 
+              currentStatus={status}
+            />
           </div>
         );
       },
-    },
-    // Can remove if done, this is for referencing88
-    {
-      field: "Request ID",
-      headerName: "Request ID",
-      width: 150,
-      renderCell: (params) => {
-        return params.row.request_id;
-      } 
     },
   ];
 
@@ -209,9 +201,8 @@ export default function FullFeaturedCrudGrid() {
   };
 
   if (loading) return <div>Loading requests...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error) return <div>{error}</div>;
 
-  // Add this function to handle updates after editing
   const handleRequestUpdate = (updatedRequest) => {
     setRows(prevRows => prevRows.map(row => 
       row.request_id === updatedRequest.request_id ? updatedRequest : row
@@ -226,7 +217,7 @@ export default function FullFeaturedCrudGrid() {
           columns={columns}
           pageSize={5}
           rowsPerPageOptions={[5]}
-          getRowId={(row) => `${row.staff_id}-${row.start_date}`} // Ensure uniqueness
+          getRowId={(row) => `${row.staff_id}-${row.start_date}`}
         />
       </Box>
       <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />

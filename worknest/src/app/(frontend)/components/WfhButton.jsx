@@ -4,21 +4,18 @@ import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import Autocomplete from "@mui/material/Autocomplete";
-import MenuItem from "@mui/material/MenuItem";
 import { useState } from "react";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
-import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 
 const WfhButton = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  const [open, setOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     staff_id: '',
@@ -26,7 +23,7 @@ const WfhButton = () => {
     start_date: '',
     reason: 'Work From Home',
     duration: '',
-    recurring_days: '', // Change here
+    recurring_days: '',
     reporting_manager_id: '',
     reporting_manager_name: '',
     reporting_manager_email: '',
@@ -41,9 +38,6 @@ const WfhButton = () => {
       parsedValue = parseInt(value);
     } else if (name === 'start_date') {
       parsedValue = new Date(value).toISOString().split('T')[0];
-    } else if (name === 'recurring_days') {
-      // No need to parse here; keep it as a string
-      parsedValue = value; // Store as-is for now
     }
 
     setFormData((prevData) => ({
@@ -69,7 +63,7 @@ const WfhButton = () => {
         ...formData,
         status: 'Pending',
         end_date: endDate.toISOString().split('T')[0],
-        recurring_days: recurring_days.split(',').map(day => parseInt(day.trim())).filter(day => !isNaN(day)) // Parse when sending
+        recurring_days: recurring_days.split(',').map(day => parseInt(day.trim())).filter(day => !isNaN(day))
       };
 
       const response = await axios.post(`http://localhost:5003/add_request/${formData.staff_id}`, requestData);
@@ -87,7 +81,7 @@ const WfhButton = () => {
         reporting_manager_email: '',
         requester_email: ''
       });
-      setShowForm(false);
+      setOpen(false);
     } catch (error) {
       console.error('Error adding request:', error);
       setError('Failed to submit request');
@@ -100,137 +94,121 @@ const WfhButton = () => {
     <div>
       <Stack spacing={2} direction="row">
         <Button 
-          variant="text" 
-          onClick={() => setShowForm((prev) => !prev)}
+          variant="contained" 
+          onClick={() => setOpen(true)}
         >
-          {showForm ? 'Cancel' : 'Request Work From Home'}
+          Request Work From Home
         </Button>
       </Stack>
 
-      {showForm && (
-        <form onSubmit={handleWfhRequest}>
-          <div>
-            <label>
-              Staff ID:
-              <input
-                type="number"
-                name="staff_id"
-                value={formData.staff_id}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Department:
-              <input
-                type="text"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Start Date:
-              <input
-                type="date"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Duration (in days):
-              <input
-                type="number"
-                name="duration"
-                value={formData.duration}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Recurring Days (e.g., 1,3,5 for Mon, Wed, Fri):
-              <input
-                type="text"
-                name="recurring_days"
-                value={formData.recurring_days}
-                onChange={handleChange}
-                placeholder="e.g. 1,3,5"
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Reporting Manager ID:
-              <input
-                type="number"
-                name="reporting_manager_id"
-                value={formData.reporting_manager_id}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Reporting Manager Name:
-              <input
-                type="text"
-                name="reporting_manager_name"
-                value={formData.reporting_manager_name}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Reporting Manager Email:
-              <input
-                type="email"
-                name="reporting_manager_email"
-                value={formData.reporting_manager_email}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <div>
-            <label>
-              Requester Email:
-              <input
-                type="email"
-                name="requester_email"
-                value={formData.requester_email}
-                onChange={handleChange}
-                required
-              />
-            </label>
-          </div>
-          <Stack spacing={2} direction="row">
-            <Button 
-              type="submit" 
-              variant="contained" 
-              disabled={loading}
-            >
-              {loading ? 'Submitting...' : 'Submit Request'}
-            </Button>
-          </Stack>
-        </form>
-      )}
-      
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Work From Home Request</DialogTitle>
+        <DialogContent>
+          <form onSubmit={handleWfhRequest}>
+            <TextField
+              margin="dense"
+              label="Staff ID"
+              type="number"
+              name="staff_id"
+              value={formData.staff_id}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              margin="dense"
+              label="Department"
+              type="text"
+              name="department"
+              value={formData.department}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              margin="dense"
+              label="Start Date"
+              type="date"
+              name="start_date"
+              value={formData.start_date}
+              onChange={handleChange}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              margin="dense"
+              label="Duration (in days)"
+              type="number"
+              name="duration"
+              value={formData.duration}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              margin="dense"
+              label="Recurring Days (e.g., 1,3,5 for Mon, Wed, Fri)"
+              type="text"
+              name="recurring_days"
+              value={formData.recurring_days}
+              onChange={handleChange}
+              fullWidth
+              placeholder="e.g. 1,3,5"
+            />
+            <TextField
+              margin="dense"
+              label="Reporting Manager ID"
+              type="number"
+              name="reporting_manager_id"
+              value={formData.reporting_manager_id}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              margin="dense"
+              label="Reporting Manager Name"
+              type="text"
+              name="reporting_manager_name"
+              value={formData.reporting_manager_name}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              margin="dense"
+              label="Reporting Manager Email"
+              type="email"
+              name="reporting_manager_email"
+              value={formData.reporting_manager_email}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              margin="dense"
+              label="Requester Email"
+              type="email"
+              name="requester_email"
+              value={formData.requester_email}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {success && <p style={{ color: 'green' }}>{success}</p>}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleWfhRequest} color="primary" disabled={loading}>
+            {loading ? 'Submitting...' : 'Submit Request'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
