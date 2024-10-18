@@ -5,6 +5,7 @@ import ResponsiveAppBar from "../components/ResponsiveAppBar";
 import Sidebar from "../components/Sidebar";
 import HrTable from "../components/HrTable";
 import CustomBarChart from "../components/BarChart"; // Renaming to avoid conflict
+import AuditLog from '../components/AuditLog'; 
 
 const HR = () => {
   const [pieChartData, setPieChartData] = useState([]); // Separate state for PieChart data
@@ -167,6 +168,10 @@ const HR = () => {
           {/* Table */}
           <div className="justify-center mt-4">
             <HrTable rows={tableData} />
+          </div>
+
+          <div className="justify-center mt-4">
+            <AuditLog />
           </div>
         </div>
       </div>
