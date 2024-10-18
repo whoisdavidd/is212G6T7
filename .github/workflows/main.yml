@@ -42,7 +42,7 @@ jobs:
     - name: Generate .env file
       run: |
       
-          echo "SQLALCHEMY_DATABASE_URI='postgresql://postgres:${{ secrets.DB_PASSWORD }}@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'" > worknest/src/app/backend/.env
+          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.DB_PASSWORD }}@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'" > worknest/src/app/backend/.env
         
     # Install PostgreSQL development headers (libpq-dev)
     - name: Install dependencies for psycopg2
