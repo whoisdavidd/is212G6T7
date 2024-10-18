@@ -116,18 +116,19 @@ const AuditLog = () => {
               </StyledTableCell>
               <StyledTableCell>
                 <TableSortLabel
-                  active={sortBy === 'approver_id'}
-                  direction={sortBy === 'approver_id' ? sortDirection : 'asc'}
-                  onClick={() => handleSort('approver_id')}
+                  active={sortBy === 'report_manager_id'}
+                  direction={sortBy === 'reporting_manager_id' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('reporting_manager_id')}
                 >
-                  Approver ID
+                  Reporting Manager ID
                 </TableSortLabel>
               </StyledTableCell>
-              <StyledTableCell>Approver Email</StyledTableCell>
+              <StyledTableCell>Reporting Manager Email</StyledTableCell>
               <StyledTableCell>Action Timestamp</StyledTableCell>
               <StyledTableCell>Start Date</StyledTableCell>
               <StyledTableCell>Duration</StyledTableCell>
               <StyledTableCell>Department</StyledTableCell>
+              <StyledTableCell>Approver Comment</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -136,12 +137,13 @@ const AuditLog = () => {
                 <TableCell>{log.request_id}</TableCell>
                 <TableCell>{log.action}</TableCell>
                 <TableCell>{log.requester_email}</TableCell>
-                <TableCell>{log.approver_id}</TableCell>
-                <TableCell>{log.approver_email}</TableCell>
+                <TableCell>{log.reporting_manager_id}</TableCell>
+                <TableCell>{log.reporting_manager_email}</TableCell>
                 <TableCell>{new Date(log.action_timestamp).toLocaleString()}</TableCell>
                 <TableCell>{new Date(log.start_date).toLocaleDateString()}</TableCell>
                 <TableCell>{log.duration}</TableCell>
                 <TableCell>{log.department}</TableCell>
+                <TableCell>{log.approver_comment}</TableCell>
               </TableRow>
             ))}
           </TableBody>
