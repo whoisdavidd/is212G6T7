@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Box from '@mui/material/Box';
+import Image from 'next/image';
 import Drawer from '@mui/material/Drawer';
 import Toolbar from '@mui/material/Toolbar';
 import List from '@mui/material/List';
@@ -33,14 +34,14 @@ function Sidebar() {
       }}
     >
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo.png" alt="logo" style={{ marginRight: 8 }} />
+        <Box display="flex" alignItems="center">
+          <Image src="/logo.png" alt="logo" width={40} height={40} style={{ marginRight: 8 }} /> {/* Use <Image> for Storybook */}
+          <Typography variant="h6" noWrap component="div">
             WorkNest
-          </Box>
-        </Typography>
+          </Typography>
+        </Box>
       </Toolbar>
-
+      
       <List>
         <ListItem button>
           <ListItemIcon>
@@ -84,9 +85,9 @@ function Sidebar() {
           <ListItemText primary="Progress" />
         </ListItem>
       </List>
-
+      
       <Divider />
-
+      
       <List>
         <ListItem button>
           <ListItemIcon>
