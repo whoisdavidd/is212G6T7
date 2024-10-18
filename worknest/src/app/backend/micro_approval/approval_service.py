@@ -134,7 +134,7 @@ class ScheduleModel(db.Model):
         db.session.add(self)
         db.session.commit()
  
-def send_rabbitmq_message(action, requester_email, reporting_manager_email, wfh_date, approver_comment, duration):
+def send_rabbitmq_message(action, requester_email, reporting_manager_email, start_date, approver_comment, duration):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
     channel = connection.channel()
     
@@ -146,7 +146,7 @@ def send_rabbitmq_message(action, requester_email, reporting_manager_email, wfh_
         'action': action,
         'email': requester_email,
         'reporting_manager_email': reporting_manager_email,
-        'wfh_date': wfh_date,
+        'start_date': start_date,
         'approver_comment': approver_comment, 
         'duration': duration
     }
