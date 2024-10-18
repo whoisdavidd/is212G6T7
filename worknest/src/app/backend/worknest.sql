@@ -4,9 +4,10 @@
 -- DROP TABLE if exists profile CASCADE;
 -- DROP TABLE if exists request CASCADE;
 -- DROP TABLE if exists schedule CASCADE;
--- DROP SCHEMA IF EXISTS worknest;
+-- DROP TABLE if exists audit_log CASCADE; 
+-- DROP SCHEMA IF EXISTS public;
 
--- CREATE SCHEMA worknest;
+-- CREATE SCHEMA public;
 -- SET search_path TO worknest, public;
 
 CREATE TABLE event (
@@ -608,8 +609,9 @@ CREATE TABLE request (
     reporting_manager_name VARCHAR(50) NOT NULL,
     reporting_manager_email VARCHAR(50) NOT NULL,  -- Added field for approver email -- easier to retrieve for sending of emails
     requester_email VARCHAR(50) NOT NULL,          -- Added field for requester email
-    day_id SERIAL,
-    recurring_days INT[],
+
+    day_id SERIAL NOT NULL,
+    days INT[],
     approver_comment VARCHAR(50)
 );
 
@@ -622,13 +624,16 @@ CREATE table schedule(
 
 CREATE TABLE audit_log (
     log_id SERIAL PRIMARY KEY,
-    request_id INT NOT NULL,
+    request_id INT NOT NULL UNIQUE, -- unique so no duplica 
     requester_email VARCHAR(50) NOT NULL,
     action VARCHAR(50) NOT NULL,
-    approver_id INT NOT NULL,
-    approver_email VARCHAR(50) NOT NULL,
+    reporting_manager_id INT NOT NULL,
+    reporting_manager_email VARCHAR(50) NOT NULL,
     action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     start_date DATE NOT NULL, -- The specific date being approved or rejected
-    duration VARCHAR(50) NOT NULL, 
-    department VARCHAR(50) NOT NULL 
+    duration INT NOT NULL,
+    department VARCHAR(50) NOT NULL, 
+    approver_comment VARCHAR(50) NOT NULL 
+
 );
+

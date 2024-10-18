@@ -14,7 +14,7 @@ db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Worknest1234!@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db =SQLAlchemy(app)
@@ -67,23 +67,34 @@ def update_profile_location():
                 db.session.commit()
 
 @app.route("/managers/<int:staff_id>", methods=['GET'])
-def getManagers(staff_id):
-    employee = Profile.query.filter_by(staff_id=staff_id).first()
-    manager = Profile.query.filter_by(staff_id=employee.reporting_manager_id).first() #manager name
-    if manager:
-        
-        return jsonify(
-           {
-            "reporting_manager_name": f"{manager.staff_fname} {manager.staff_lname}",
-            "reporting_manager_id": manager.staff_id
-            }
-        )
-    return jsonify(
-        {
+def get_department_employees(staff_id):
+    # Find the manager's profile based on the given staff_id and ensure their role is 3 (manager)
+    manager = Profile.query.filter_by(staff_id=staff_id, role=3).first()
+    
+    if not manager:
+        return jsonify({
             "code": 404,
-            "message": "Manager not found."
+            "message": "Manager not found or not a valid manager."
+        }), 404
+
+    # Get the manager's department
+    department = manager.department
+    
+    # Query all employees that belong to the same department as the manager
+    employees_in_department = Profile.query.filter_by(department=department).all()
+
+    # Convert the list of employees to dictionaries (excluding sensitive info like passwords)
+    employee_data = [employee.to_dict() for employee in employees_in_department]
+
+    return jsonify({
+        "code": 200,
+        "data": {
+            "manager": f"{manager.staff_fname} {manager.staff_lname}",
+            "department": department,
+            "employees": employee_data
         }
-    ), 404
+    })
+
 
 @app.route("/profile", methods=['GET'])
 def get_all_profiles():
