@@ -14,7 +14,7 @@ def callback(ch, method, properties, body):
     # Extract details from the message
     action = message['action']
     requester_email = message['email']
-    approver_email = message['approver_email']
+    reporting_manager_email = message['reporting_manager_email']
     wfh_date = message['wfh_date']
     approver_comment = message['approver_comment']
     duration = message['duration']
@@ -44,7 +44,7 @@ def callback(ch, method, properties, body):
     send_email_notification(requester_email, requester_subject, requester_body)
     
     # Send email to approver
-    send_email_notification(approver_email, approver_subject, approver_body)
+    send_email_notification(reporting_manager_email, approver_subject, approver_body)
 
 
 def start_worker():
