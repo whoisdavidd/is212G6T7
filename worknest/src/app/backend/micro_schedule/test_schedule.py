@@ -1,10 +1,12 @@
 import unittest
 from flask import json
 from micro_schedule import app, Schedule, db
+import os
 
 class ScheduleServiceTestCase(unittest.TestCase):
     def setUp(self):
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        db_uri = os.getenv('DATABASE_URI', 'sqlite:///:memory:')
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
         app.config['TESTING'] = True
         self.app = app.test_client()
         with app.app_context():
