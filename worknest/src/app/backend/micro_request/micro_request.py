@@ -15,7 +15,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')  # Replace with a sec
 
 CORS(app) # Replace with your frontend's URL
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Worknest1234!@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'  # Use the database URL from the environment variable
+app.config['SQLALCHEMY_DATABASE_URI'] =db_url # Use the database URL from the environment variable
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -356,4 +356,4 @@ def update_request(request_id):
 # ---------------------------------- Main ----------------------------------
 
 if __name__ == '__main__':
-    app.run(port=5003, debug=True)
+    app.run(host="0.0.0.0",port=5000, debug=True)  

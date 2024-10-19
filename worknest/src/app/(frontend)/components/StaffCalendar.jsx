@@ -15,13 +15,16 @@ export default function StaffCalendar() {
     if (typeof window !== 'undefined') {
       const storedStaffId = sessionStorage.getItem('staff_id');
       setStaffId(storedStaffId);
+      setTimeout(() => {
+        console.log('Staff ID:', storedStaffId);
+      },100)
     }
   }, []);
 
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const response = await fetch(`http://localhost:5003/request/staff/${staff_id}`);
+        const response = await fetch(`http://localhost:5003/request/staff/${storedStaffId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch requests');
         }
