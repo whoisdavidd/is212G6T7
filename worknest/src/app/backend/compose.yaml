@@ -16,7 +16,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5001:5001"
+      - "5001:5000"
     restart: always
     networks:
       - worknest_default
@@ -30,7 +30,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5002:5002"
+      - "5002:5000"
     restart: always
     networks:
       - worknest_default
@@ -44,7 +44,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5003:5003"
+      - "5003:5000"
     restart: always
     networks:
       - worknest_default
@@ -58,7 +58,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5004:5004"
+      - "5004:5000"
     restart: always
     networks:
       - worknest_default
@@ -73,7 +73,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5005:5005"
+      - "5005:5000"
     restart: always
     networks:
       - worknest_default
@@ -88,10 +88,6 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: always
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
     env_file:
       - .env
     networks:
@@ -118,7 +114,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5006:5006"  
+      - "5006:5000"  
     restart: always
     networks:
       - worknest_default
@@ -126,3 +122,18 @@ services:
       - .env
 
 
+  # db:
+  #   image: postgres:13
+  #   volumes:
+  #     - db_data:/var/lib/postgresql/data
+  #   environment:
+  #     POSTGRES_USER: ${DB_USER}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #     POSTGRES_DB: ${DB_NAME}
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #   networks:
+  #     - worknest_default

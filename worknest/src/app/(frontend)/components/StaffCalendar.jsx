@@ -18,6 +18,9 @@ export default function StaffCalendar({ onViewChange }) {
     if (typeof window !== 'undefined') {
       const storedStaffId = sessionStorage.getItem('staff_id');
       setStaffId(storedStaffId);
+      setTimeout(() => {
+        console.log('Staff ID:', storedStaffId);
+      },100)
     }
   }, []);
 
@@ -26,9 +29,10 @@ export default function StaffCalendar({ onViewChange }) {
 
     const fetchRequests = async () => {
       try {
-        const response = await fetch(`http://localhost:5003/requests/${staffId}`);
-        if (!response.ok) throw new Error('Failed to fetch requests');
-
+        const response = await fetch(`http://localhost:5003/request/staff/${storedStaffId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch requests');
+        }
         const data = await response.json();
         const mappedEvents = mapRequestsToEvents(data);
         setEvents(mappedEvents);
