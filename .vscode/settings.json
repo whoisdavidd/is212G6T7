@@ -2,7 +2,8 @@
     "python.analysis.extraPaths": [
         "./worknest/src",
         "./worknest/src/app",
-        "./worknest/src/app/backend"
+        "./worknest/src/app/backend",
+        "./worknest/src/app/backend/micro_notification"
     ],
     "python.testing.pytestArgs": [
         "worknest"

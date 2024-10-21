@@ -7,7 +7,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // Function to fetch managers
 const fetchManagers = async () => {
@@ -57,12 +57,12 @@ const updateWFHRequest = async (requestId, startDate, duration, reason, manager,
         start_date: startDate,
         duration: duration,
         reason: reason,
-        status: currentStatus === 'Approved' ? 'Pending' : currentStatus
+        status: currentStatus === "Approved" ? "Pending" : currentStatus,
       }),
     });
 
     const data = await response.json();
-    console.log(data)
+    console.log(data);
 
     if (response.ok) {
       console.log("WFH Request Updated:", data);
@@ -86,30 +86,38 @@ export default function EditButton({ requestId, onRequestUpdate, currentStatus }
   const [selectedManager, setSelectedManager] = useState(null);
   const [status, setStatus] = useState(currentStatus);
 
+  const fetchRequestDetails = useCallback(
+    async (requestId) => {
+      try {
+        const response = await fetch(`http://localhost:5003/request/${requestId}`);
+        const data = await response.json();
+        if (response.ok) {
+          setStartDate(data.start_date);
+          setDuration(data.duration);
+          setReason(data.reason);
+          setStatus(data.status);
+          setSelectedManager(managers.find((m) => m.manager_id === data.reporting_manager_id) || null);
+        } else {
+          console.error("Error fetching request details:", data);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    },
+    [managers] // managers as dependency
+  );
+
   useEffect(() => {
     if (open) {
-      fetchManagers().then(setManagers);
-      fetchRequestDetails(requestId);
-    }
-  }, [open, requestId]);
+      const fetchData = async () => {
+        const fetchedManagers = await fetchManagers();
+        setManagers(fetchedManagers);
+        await fetchRequestDetails(requestId);
+      };
 
-  const fetchRequestDetails = async (requestId) => {
-    try {
-      const response = await fetch(`http://localhost:5003/request/${requestId}`);
-      const data = await response.json();
-      if (response.ok) {
-        setStartDate(data.start_date);
-        setDuration(data.duration);
-        setReason(data.reason);
-        setStatus(data.status);
-        setSelectedManager(managers.find(m => m.manager_id === data.reporting_manager_id) || null);
-      } else {
-        console.error("Error fetching request details:", data);
-      }
-    } catch (error) {
-      console.error("Error:", error);
+      fetchData();
     }
-  };
+  }, [open, requestId, fetchRequestDetails]);
 
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -118,16 +126,23 @@ export default function EditButton({ requestId, onRequestUpdate, currentStatus }
 
   const handleSubmit = async () => {
     try {
-      const updatedRequest = await updateWFHRequest(requestId, startDate, duration, reason, selectedManager, status);
-      
+      const updatedRequest = await updateWFHRequest(
+        requestId,
+        startDate,
+        duration,
+        reason,
+        selectedManager,
+        status
+      );
+
       // If the status was 'approved', we've changed it to 'Pending'
-      if (status === 'Approved') {
-        updatedRequest.status = 'Pending';
+      if (status === "Approved") {
+        updatedRequest.status = "Pending";
         alert("Your request has been edited and resubmitted for approval.");
       } else {
         alert("Your request has been updated successfully.");
       }
-      
+
       onRequestUpdate(updatedRequest);
       handleClose();
     } catch (error) {
@@ -146,7 +161,7 @@ export default function EditButton({ requestId, onRequestUpdate, currentStatus }
         <DialogContent>
           <DialogContentText>
             Update the details of your WFH request.
-            {status === 'Approved' && " This will resubmit your request for approval."}
+            {status === "Approved" && " This will resubmit your request for approval."}
           </DialogContentText>
           <TextField
             margin="dense"
@@ -182,12 +197,7 @@ export default function EditButton({ requestId, onRequestUpdate, currentStatus }
             value={selectedManager}
             onChange={handleManagerChange}
             renderInput={(params) => (
-              <TextField
-                {...params}
-                margin="dense"
-                label="Manager's Name"
-                fullWidth
-              />
+              <TextField {...params} margin="dense" label="Manager's Name" fullWidth />
             )}
           />
         </DialogContent>

@@ -5,40 +5,58 @@ import { DataGrid } from '@mui/x-data-grid';
 
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
-  const staff_id = sessionStorage.getItem("staff_id"); // Assuming this will be used for future actions
+  const [errorMessage, setErrorMessage] = React.useState(null);
+
+  // Fetch staff_id from sessionStorage
+  const staff_id = React.useMemo(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem("staff_id");
+    }
+    return null;
+  }, []); // UseMemo to avoid re-fetching
 
   // Fetch event data from the Flask backend
   React.useEffect(() => {
     const fetchEventData = async () => {
-      // const staff_id = sessionStorage.getItem("staff_id");
+      if (!staff_id) {
+        console.error("No staff_id found in session storage.");
+        setErrorMessage("No staff_id found in session storage.");
+        return;
+      }
+
       try {
         const response = await fetch(`http://localhost:5003/request/staff/${staff_id}`);
         const data = await response.json();
-        console.log("Fetched Data:", data); // Log the fetched data
+        console.log("Fetched Data:", data);
+
+        // Format the data before setting the rows
         const formattedData = data.map((item) => {
-          const date = new Date(item.start_date); // Parse the date
+          const date = new Date(item.start_date);
           const formattedDate = date.toISOString().split('T')[0]; // Format to 'YYYY-MM-DD'
           return {
             request_id: item.request_id,
             staff_id: item.staff_id,
             department: item.department,
-            start_date: formattedDate, // Ensure the parsed date is valid
+            start_date: formattedDate,
             reason: item.reason,
             duration: item.duration,
             status: item.status,
             reporting_manager_id: item.reporting_manager_id,
             reporting_manager_name: item.reporting_manager_name,
-            // Add other fields as needed
           };
         });
+
         setRows(formattedData);
       } catch (error) {
         console.error('Error fetching event data:', error);
+        setErrorMessage("Failed to fetch event data.");
       }
     };
-    fetchEventData();
-  }, []);
 
+    fetchEventData();
+  }, [staff_id]); // Add staff_id as a dependency
+
+  // Column definitions for DataGrid
   const columns = [
     { field: 'staff_id', headerName: 'Staff ID', width: 100 },
     { field: 'department', headerName: 'Department', width: 150 },
@@ -46,9 +64,7 @@ export default function FullFeaturedCrudGrid() {
       field: 'start_date',
       headerName: 'Start Date',
       width: 180,
-      valueFormatter: (params) => {
-        return params.value; // Return the formatted string directly
-      },
+      valueFormatter: (params) => params.value, // Return the formatted string directly
     },
     { field: 'reason', headerName: 'Reason', width: 150 },
     { field: 'duration', headerName: 'Duration', width: 100 },
@@ -59,7 +75,6 @@ export default function FullFeaturedCrudGrid() {
       width: 150,
       renderCell: (params) => {
         const { status, request_id } = params.row;
-
         return (
           <div>
             {status === 'Pending' && (
@@ -86,21 +101,18 @@ export default function FullFeaturedCrudGrid() {
     }
   ];
 
+  // Handle Withdraw Request
   const handleWithdrawClick = async (request_id) => {
     try {
-      // Retrieve data from sessionStorage
       const role = sessionStorage.getItem('role');
       const staffId = sessionStorage.getItem('staff_id');
       const department = sessionStorage.getItem('department');
-  
-      // Validate that the necessary data exists
+
       if (!role || !staffId || !department) {
-        setErrorMessage("User session is invalid. Please log in again.");
         alert("User session is invalid. Please log in again.");
         return;
       }
-  
-      // Make the PUT request with custom headers
+
       const response = await fetch(`http://localhost:5003/request/withdraw/${request_id}`, {
         method: 'PUT',
         headers: {
@@ -109,44 +121,37 @@ export default function FullFeaturedCrudGrid() {
           'X-Staff-ID': staffId,
           'X-Department': department,
         },
-        credentials: 'include', // Include cookies in the request
+        credentials: 'include',
       });
-  
+
       const data = await response.json();
       if (response.ok) {
-        // Update the rows state to reflect the withdrawn status
-        setRows(rows.map(row => (
-          row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
-        )));
-        console.log(`Withdrawn request for Request ID: ${request_id}`);
+        setRows((prevRows) =>
+          prevRows.map((row) =>
+            row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
+          )
+        );
         alert("Request withdrawn successfully.");
       } else {
-        console.error('Failed to withdraw request:', data.message);
-        setErrorMessage(data.message || "Failed to withdraw the request.");
         alert(`Error: ${data.message}`);
       }
     } catch (error) {
-      console.error('Error withdrawing request:', error);
-      setErrorMessage("An unexpected error occurred. Please try again.");
       alert("An unexpected error occurred. Please try again.");
     }
   };
 
+  // Handle Cancel Request
   const handleCancelClick = async (request_id) => {
     try {
-      // Retrieve data from sessionStorage
       const role = sessionStorage.getItem('role');
       const staffId = sessionStorage.getItem('staff_id');
       const department = sessionStorage.getItem('department');
-  
-      // Validate that the necessary data exists
+
       if (!role || !staffId || !department) {
-        setErrorMessage("User session is invalid. Please log in again.");
         alert("User session is invalid. Please log in again.");
         return;
       }
-  
-      // Make the PUT request with custom headers
+
       const response = await fetch(`http://localhost:5003/request/cancel/${request_id}`, {
         method: 'PUT',
         headers: {
@@ -155,25 +160,21 @@ export default function FullFeaturedCrudGrid() {
           'X-Staff-ID': staffId,
           'X-Department': department,
         },
-        credentials: 'include', // Include cookies in the request
+        credentials: 'include',
       });
-  
+
       const data = await response.json();
       if (response.ok) {
-        // Update the rows state to reflect the cancelled status
-        setRows(rows.map(row => (
-          row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
-        )));
-        console.log(`Cancelled request for Request ID: ${request_id}`);
+        setRows((prevRows) =>
+          prevRows.map((row) =>
+            row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
+          )
+        );
         alert("Request canceled successfully.");
       } else {
-        console.error('Failed to cancel request:', data.message);
-        setErrorMessage(data.message || "Failed to cancel the request.");
         alert(`Error: ${data.message}`);
       }
     } catch (error) {
-      console.error('Error cancelling request:', error);
-      setErrorMessage("An unexpected error occurred. Please try again.");
       alert("An unexpected error occurred. Please try again.");
     }
   };
@@ -181,6 +182,7 @@ export default function FullFeaturedCrudGrid() {
   return (
     <div>
       <Box sx={{ height: 500, width: '100%' }}>
+        {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
         <DataGrid
           rows={rows}
           columns={columns}
