@@ -1,8 +1,6 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import WfhButton from './WfhButton';
-import EditButton from './EditButton';
 import { DataGrid } from '@mui/x-data-grid';
 
 export default function FullFeaturedCrudGrid() {
@@ -85,36 +83,7 @@ export default function FullFeaturedCrudGrid() {
           </div>
         );
       },
-    },
-    {
-      field: 'edit',
-      headerName: 'Edit',
-      width: 150,
-      renderCell: (params) => {
-        const { request_id, status } = params.row;
-
-        return (
-          <div>
-            {
-              <EditButton 
-                requestId={request_id} 
-                onRequestUpdate={handleRequestUpdate} 
-                currentStatus={status}
-              />
-            }
-          </div>
-        );
-      },
-    },
-    // Can remove if done, this is for referencing88
-    {
-      field: "Request ID",
-      headerName: "Request ID",
-      width: 150,
-      renderCell: (params) => {
-        return params.row.request_id;
-      } 
-    },
+    }
   ];
 
   const handleWithdrawClick = async (request_id) => {
@@ -207,13 +176,6 @@ export default function FullFeaturedCrudGrid() {
       setErrorMessage("An unexpected error occurred. Please try again.");
       alert("An unexpected error occurred. Please try again.");
     }
-  };
-
-  // Add this function to handle updates after editing
-  const handleRequestUpdate = (updatedRequest) => {
-    setRows(prevRows => prevRows.map(row => 
-      row.request_id === updatedRequest.request_id ? updatedRequest : row
-    ));
   };
 
   return (
