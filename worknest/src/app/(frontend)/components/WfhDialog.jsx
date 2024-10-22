@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, Grid, Button } from "@mui/material";
+import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, Grid, Button, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
 import axios from "axios";
 
-const WfhDialog = ({ open, onClose, initialStartDate }) => {
+const WfhDialog = ({ open, onClose, selectedDates = [] }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [formData, setFormData] = useState({
     staff_id: '',
     department: '',
-    start_date: initialStartDate || '',
     reason: 'Work From Home',
-    duration: '',
-    recurring_days: '',
+    status: 'Pending', // Default status
     reporting_manager_id: '',
     reporting_manager_name: '',
     reporting_manager_email: '',
-    requester_email: ''
+    requester_email: '',
+    approver_comment: '',
+    requested_dates: selectedDates,
+    time_of_day: 'Full Day'
   });
 
   useEffect(() => {
@@ -24,10 +25,10 @@ const WfhDialog = ({ open, onClose, initialStartDate }) => {
       const fetchProfile = async () => {
         try {
           const staffId = sessionStorage.getItem('staff_id');
-          const response = await axios.get(`http://localhost:5002/profile/${staffId}`);
+          const response = await axios.get(`http://127.0.0.1:5002/profile/${staffId}`);
           const profile = response.data;
 
-          const managerResponse = await axios.get(`http://localhost:5002/profile/${profile.reporting_manager_id}`);
+          const managerResponse = await axios.get(`http://127.0.0.1:5002/profile/${profile.reporting_manager_id}`);
           const manager = managerResponse.data;
 
           setFormData((prevData) => ({
@@ -38,7 +39,7 @@ const WfhDialog = ({ open, onClose, initialStartDate }) => {
             reporting_manager_name: manager.staff_fname + ' ' + manager.staff_lname,
             reporting_manager_email: manager.email,
             requester_email: profile.email,
-            start_date: initialStartDate || prevData.start_date
+            requested_dates: selectedDates
           }));
         } catch (error) {
           console.error('Error fetching profile or manager details:', error);
@@ -47,7 +48,7 @@ const WfhDialog = ({ open, onClose, initialStartDate }) => {
 
       fetchProfile();
     }
-  }, [open, initialStartDate]);
+  }, [open, selectedDates]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,20 +65,12 @@ const WfhDialog = ({ open, onClose, initialStartDate }) => {
     setSuccess(null);
 
     try {
-      const { start_date, duration, recurring_days } = formData;
-      const durationDays = parseInt(duration);
-      const startDate = new Date(start_date);
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + durationDays);
-
       const requestData = {
         ...formData,
-        status: 'Pending',
-        end_date: endDate.toISOString().split('T')[0],
-        recurring_days: recurring_days.split(',').map(day => parseInt(day.trim())).filter(day => !isNaN(day))
+        requested_dates: selectedDates // Ensure dates are passed correctly
       };
 
-      const response = await axios.post(`http://localhost:5003/requests`, requestData);
+      const response = await axios.post(`http://127.0.0.1:5003/requests`, requestData);
       console.log('Request added:', response.data);
       setSuccess('Request submitted successfully!');
       onClose();
@@ -95,6 +88,17 @@ const WfhDialog = ({ open, onClose, initialStartDate }) => {
       <DialogContent>
         <form onSubmit={handleWfhRequest}>
           <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                margin="dense"
+                label="Selected Dates"
+                type="text"
+                name="requested_dates"
+                value={selectedDates.join(', ')}
+                fullWidth
+                disabled
+              />
+            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 margin="dense"
@@ -121,41 +125,41 @@ const WfhDialog = ({ open, onClose, initialStartDate }) => {
                 disabled
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                margin="dense"
-                label="Start Date"
-                type="date"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleChange}
-                fullWidth
-                required
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                margin="dense"
-                label="Duration (in days)"
-                type="number"
-                name="duration"
-                value={formData.duration}
-                onChange={handleChange}
-                fullWidth
-                required
-              />
-            </Grid>
             <Grid item xs={12}>
               <TextField
                 margin="dense"
-                label="Recurring Days (e.g., 1,3,5 for Mon, Wed, Fri)"
+                label="Reason"
                 type="text"
-                name="recurring_days"
-                value={formData.recurring_days}
+                name="reason"
+                value={formData.reason}
                 onChange={handleChange}
                 fullWidth
-                placeholder="e.g. 1,3,5"
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>Time of Day</InputLabel>
+                <Select
+                  name="time_of_day"
+                  value={formData.time_of_day}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="Full Day">Full Day</MenuItem>
+                  <MenuItem value="AM">AM</MenuItem>
+                  <MenuItem value="PM">PM</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                margin="dense"
+                label="Approver Comment"
+                type="text"
+                name="approver_comment"
+                value={formData.approver_comment}
+                onChange={handleChange}
+                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>

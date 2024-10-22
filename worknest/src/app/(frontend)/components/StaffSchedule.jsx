@@ -1,55 +1,49 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import WfhButton from './WfhButton';
-import EditButton from './EditButton';
 import { DataGrid } from '@mui/x-data-grid';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import EditButton from './EditButton';
 
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = React.useState([]);
-  const [errorMessage, setErrorMessage] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+  const staff_id = sessionStorage.getItem("staff_id");
 
-  // Fetch staff_id from sessionStorage
-  const staff_id = React.useMemo(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem("staff_id");
-    }
-    return null;
-  }, []); // UseMemo to avoid re-fetching
-
-  // Fetch event data from the Flask backend
-  React.useEffect(() => {
-    const fetchEventData = async () => {
-      if (!staff_id) {
-        console.error("No staff_id found in session storage.");
-        setErrorMessage("No staff_id found in session storage.");
-        return;
+  const fetchEventData = async (retryCount = 3) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5003/requests/${staff_id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch requests');
       }
-
-      try {
-        const response = await fetch(`http://localhost:5003/request/staff/${staff_id}`);
-        const data = await response.json();
-        console.log("Fetched Data:", data);
-
-        // Format the data before setting the rows
+      const data = await response.json();
+      if (data.length === 0) {
+        setError('No requests found.');
+      } else {
         const formattedData = data.map((item) => {
-          const date = new Date(item.start_date);
-          const formattedDate = date.toISOString().split('T')[0]; // Format to 'YYYY-MM-DD'
+          const formattedDates = Array.isArray(item.requested_dates)
+            ? item.requested_dates.map(date => new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              }).format(new Date(date))).join(', ')
+            : 'N/A';
+
           return {
             request_id: item.request_id,
             staff_id: item.staff_id,
             department: item.department,
-            start_date: formattedDate,
+            requested_dates: formattedDates,
             reason: item.reason,
-            duration: item.duration,
             status: item.status,
             reporting_manager_id: item.reporting_manager_id,
             reporting_manager_name: item.reporting_manager_name,
+            time_of_day: item.time_of_day,
           };
         });
-
         setRows(formattedData);
       }
       setLoading(false);
@@ -58,26 +52,23 @@ export default function FullFeaturedCrudGrid() {
         setTimeout(() => fetchEventData(retryCount - 1), 1000);
       } else {
         console.error('Error fetching event data:', error);
-        setErrorMessage("Failed to fetch event data.");
+        setError(error.message);
+        setLoading(false);
       }
-    };
+    }
+  };
 
+  React.useEffect(() => {
     fetchEventData();
-  }, [staff_id]); // Add staff_id as a dependency
+  }, []);
 
-  // Column definitions for DataGrid
   const columns = [
     { field: 'staff_id', headerName: 'Staff ID', width: 100 },
     { field: 'department', headerName: 'Department', width: 150 },
-    {
-      field: 'start_date',
-      headerName: 'Start Date',
-      width: 180,
-      valueFormatter: (params) => params.value, // Return the formatted string directly
-    },
+    { field: 'requested_dates', headerName: 'Requested Dates', width: 200 },
     { field: 'reason', headerName: 'Reason', width: 150 },
-    { field: 'duration', headerName: 'Duration', width: 100 },
     { field: 'status', headerName: 'Status', width: 120 },
+    { field: 'time_of_day', headerName: 'Time of Day', width: 120 }, // Add time_of_day column
     {
       field: 'actions',
       headerName: 'Actions',
@@ -108,30 +99,8 @@ export default function FullFeaturedCrudGrid() {
         );
       },
     },
-    {
-      field: 'edit',
-      headerName: 'Edit',
-      width: 150,
-      renderCell: (params) => {
-        const { request_id, status } = params.row;
-        return (
-          <EditButton
-            requestId={request_id}
-            onRequestUpdate={handleRequestUpdate}
-            currentStatus={status}
-          />
-        );
-      },
-    },
-    {
-      field: 'request_id',
-      headerName: 'Request ID',
-      width: 150,
-      renderCell: (params) => params.row.request_id,
-    },
   ];
 
-  // Handle Withdraw Request
   const handleWithdrawClick = async (request_id) => {
     const originalRows = [...rows];
     setRows(rows.map(row => (
@@ -143,11 +112,11 @@ export default function FullFeaturedCrudGrid() {
       const department = sessionStorage.getItem('department');
 
       if (!role || !staffId || !department) {
-        alert("User session is invalid. Please log in again.");
+        toast.error("User session is invalid. Please log in again.");
         return;
       }
 
-      const response = await fetch(`http://localhost:5003/request/withdraw/${request_id}`, {
+      const response = await fetch(`http://127.0.0.1:5003/requests/${request_id}/withdraw`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -155,26 +124,21 @@ export default function FullFeaturedCrudGrid() {
           'X-Staff-ID': staffId,
           'X-Department': department,
         },
-        credentials: 'include',
       });
 
       const data = await response.json();
       if (response.ok) {
-        setRows((prevRows) =>
-          prevRows.map((row) =>
-            row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
-          )
-        );
-        alert("Request withdrawn successfully.");
+        toast.success("Request withdrawn successfully.");
       } else {
-        alert(`Error: ${data.message}`);
+        setRows(originalRows);
+        toast.error(`Error: ${data.message}`);
       }
     } catch (error) {
-      alert("An unexpected error occurred. Please try again.");
+      setRows(originalRows);
+      toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
-  // Handle Cancel Request
   const handleCancelClick = async (request_id) => {
     const originalRows = [...rows];
     setRows(rows.map(row => (
@@ -186,11 +150,13 @@ export default function FullFeaturedCrudGrid() {
       const department = sessionStorage.getItem('department');
 
       if (!role || !staffId || !department) {
-        alert("User session is invalid. Please log in again.");
+        toast.error("User session is invalid. Please log in again.");
         return;
       }
 
-      const response = await fetch(`http://localhost:5003/request/cancel/${request_id}`, {
+      console.log(role, staffId, department);
+
+      const response = await fetch(`http://127.0.0.1:5003/requests/${request_id}/cancel`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -198,44 +164,40 @@ export default function FullFeaturedCrudGrid() {
           'X-Staff-ID': staffId,
           'X-Department': department,
         },
-        credentials: 'include',
       });
 
       const data = await response.json();
       if (response.ok) {
-        setRows((prevRows) =>
-          prevRows.map((row) =>
-            row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
-          )
-        );
-        alert("Request canceled successfully.");
+        toast.success("Request canceled successfully.");
       } else {
-        alert(`Error: ${data.message}`);
+        setRows(originalRows);
+        toast.error(`Error: ${data.message}`);
       }
     } catch (error) {
-      alert("An unexpected error occurred. Please try again.");
+      setRows(originalRows);
+      console.log(error);
+      toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
-  // Handle Updates after Editing
+  if (loading) return <div>Loading requests...</div>;
+  if (error) return <div>{error}</div>;
+
   const handleRequestUpdate = (updatedRequest) => {
-    setRows((prevRows) =>
-      prevRows.map((row) =>
-        row.request_id === updatedRequest.request_id ? updatedRequest : row
-      )
-    );
+    setRows(prevRows => prevRows.map(row => 
+      row.request_id === updatedRequest.request_id ? updatedRequest : row
+    ));
   };
 
   return (
     <div>
       <Box sx={{ height: 500, width: '100%' }}>
-        {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
         <DataGrid
           rows={rows}
           columns={columns}
           pageSize={5}
           rowsPerPageOptions={[5]}
-          getRowId={(row) => `${row.staff_id}-${row.start_date}`}
+          getRowId={(row) => `${row.request_id}`}
         />
       </Box>
       <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />

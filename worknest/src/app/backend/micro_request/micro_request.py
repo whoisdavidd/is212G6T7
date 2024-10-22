@@ -10,14 +10,16 @@ from flasgger import Swagger
 
 load_dotenv()
 
-db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
+# Constants for configuration
+DB_URL = os.getenv("SQLALCHEMY_DATABASE_URI")
+SECRET_KEY = os.getenv('SECRET_KEY', 'supersecretkey')  # Replace with a secure key or use an environment variable
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')  # Replace with a secure key or use an environment variable
+app.secret_key = SECRET_KEY
 
-CORS(app) # Replace with your frontend's URL
+CORS(app)  # Replace with your frontend's URL
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
+app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -34,50 +36,44 @@ class RequestModel(db.Model):
     request_id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     staff_id = db.Column(db.Integer, nullable=False)
     department = db.Column(db.String(50), nullable=False)
-    start_date = db.Column(db.String(50), nullable=False)
     reason = db.Column(db.String(50), nullable=False)
-    duration = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), nullable=False)
-    reporting_manager_id = db.Column(db.Integer)
-    reporting_manager_name = db.Column(db.String(50))
-    reporting_manager_email = db.Column(db.String(50))
-    requester_email = db.Column(db.String(50))
-    day_id = db.Column(db.Integer)
-    recurring_days = db.Column(db.Integer)
-    approver_comment = db.Column(db.String(255))
-    
-    def __init__(self, staff_id, department, start_date, reason, duration, status, reporting_manager_id, reporting_manager_name, reporting_manager_email, requester_email, day_id=None, recurring_days=None, approver_comment=None):
+    reporting_manager_id = db.Column(db.Integer, nullable=False)
+    reporting_manager_name = db.Column(db.String(50), nullable=False)
+    reporting_manager_email = db.Column(db.String(50), nullable=False)
+    requester_email = db.Column(db.String(50), nullable=False)
+    approver_comment = db.Column(db.String(50))
+    requested_dates = db.Column(db.ARRAY(db.Date))
+    time_of_day = db.Column(db.String(10), default='Full Day')
+
+    def __init__(self, staff_id, department, reason, status, reporting_manager_id, reporting_manager_name, reporting_manager_email, requester_email, approver_comment=None, requested_dates=None, time_of_day='Full Day'):
         self.staff_id = staff_id
         self.department = department
-        self.start_date = start_date
         self.reason = reason
-        self.duration = duration
         self.status = status
         self.reporting_manager_id = reporting_manager_id
         self.reporting_manager_name = reporting_manager_name
         self.reporting_manager_email = reporting_manager_email
         self.requester_email = requester_email
-        self.day_id = day_id
-        self.recurring_days = recurring_days
         self.approver_comment = approver_comment
-        
+        self.requested_dates = requested_dates
+        self.time_of_day = time_of_day
+
     def to_dict(self):
-      return {
-          'request_id': self.request_id,
-          'staff_id': self.staff_id,
-          'department': self.department,
-          'start_date': self.start_date,
-          'reason': self.reason,
-          'duration': self.duration,
-          'status': self.status,
-          'reporting_manager_id': self.reporting_manager_id,
-          'reporting_manager_name': self.reporting_manager_name,
-          'reporting_manager_email': self.reporting_manager_email,
-          'requester_email': self.requester_email,
-          'day_id': self.day_id,
-          'recurring_days': self.recurring_days,
-          'approver_comment': self.approver_comment
-      }
+        return {
+            'request_id': self.request_id,
+            'staff_id': self.staff_id,
+            'department': self.department,
+            'reason': self.reason,
+            'status': self.status,
+            'reporting_manager_id': self.reporting_manager_id,
+            'reporting_manager_name': self.reporting_manager_name,
+            'reporting_manager_email': self.reporting_manager_email,
+            'requester_email': self.requester_email,
+            'approver_comment': self.approver_comment,
+            'requested_dates': self.requested_dates,
+            'time_of_day': self.time_of_day
+        }
 
 
 # ------------------------------ Get all requests ------------------------------
@@ -179,37 +175,21 @@ def add_request():
     logger.info("[POST] /requests - Received request to add a new request.")
     try:
         data = request.get_json()
-        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
-        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-        duration = (end_date - start_date).days
-
-        if duration < 0:
-            logger.warning("[POST] /requests - End date is before start date.")
-            return jsonify({'error': 'End date must be after start date.'}), 400
-
-        # Ensure recurring_days is an array
-        recurring_days = data.get('recurring_days', [])
-        if isinstance(recurring_days, int):
-            recurring_days = [recurring_days]
-
-        # Check for missing keys and provide defaults if necessary
-        reporting_manager_email = data.get('reporting_manager_email', '')
-        requester_email = data.get('requester_email', '')
+        requested_dates = data['requested_dates']
+        if not requested_dates or not all(isinstance(date, str) for date in requested_dates):
+            return jsonify({'error': 'Invalid date format. Use an array of YYYY-MM-DD strings.'}), 400
 
         new_request = RequestModel(
             staff_id=data['staff_id'],
             department=data['department'],
-            start_date=data['start_date'],
             reason=data['reason'],
-            duration=duration,
             status='Pending',
             reporting_manager_id=data['reporting_manager_id'],
             reporting_manager_name=data['reporting_manager_name'],
-            reporting_manager_email=reporting_manager_email,
-            requester_email=requester_email,
-            day_id=data.get('day_id', 0),
-            recurring_days=recurring_days,
-            approver_comment=data.get('approver_comment', '')
+            reporting_manager_email=data.get('reporting_manager_email', ''),
+            requester_email=data.get('requester_email', ''),
+            approver_comment=data.get('approver_comment', ''),
+            requested_dates=requested_dates
         )
         db.session.add(new_request)
         db.session.commit()
@@ -218,9 +198,6 @@ def add_request():
     except KeyError as ke:
         logger.error(f"[POST] /requests - Missing key: {str(ke)}")
         return jsonify({'error': f'Missing key: {str(ke)}'}), 400
-    except ValueError as ve:
-        logger.error(f"[POST] /requests - Date format error: {str(ve)}")
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
     except Exception as e:
         logger.error(f"[POST] /requests - Error adding request: {str(e)}")
         return jsonify({'error': 'Failed to add request'}), 500
@@ -332,7 +309,7 @@ def get_request(request_id):
 
 # ------------------------------ Get all requests by manager_id ------------------------------
 
-@app.route('/manager_requests/<int:manager_id>', methods=['GET'])
+@app.route('/requests/manager/<int:manager_id>', methods=['GET'])
 def get_manager_requests(manager_id):
     """
     Get all requests by manager_id
@@ -355,9 +332,11 @@ def get_manager_requests(manager_id):
                 type: string
               work_location:
                 type: string
-              from_date:
-                type: string
-              to_date:
+              requested_dates:
+                type: array
+                items:
+                  type: string
+              time_of_day:
                 type: string
               status:
                 type: string
@@ -369,44 +348,46 @@ def get_manager_requests(manager_id):
         profile_service_url = f"http://localhost:5002/managers/{manager_id}/team"
         response = requests.get(profile_service_url)
         if response.status_code != 200:
-            logger.error(f"[GET] /manager_requests/{manager_id} - Failed to fetch team members from Profile service for manager_id {manager_id}.")
+            logger.error(f"[GET] /requests/manager/{manager_id} - Failed to fetch team members from Profile service for manager_id {manager_id}.")
             return jsonify({"error": "Failed to fetch team members from Profile service"}), response.status_code
 
         team_members = response.json()
         team_staff_ids = [member['staff_id'] for member in team_members]
 
         if not team_staff_ids:
-            logger.info(f"[GET] /manager_requests/{manager_id} - No team members found for manager_id {manager_id}.")
+            logger.info(f"[GET] /requests/manager/{manager_id} - No team members found for manager_id {manager_id}.")
             return jsonify({"message": "No team members found for this manager."}), 200
 
         team_requests = RequestModel.query.filter(RequestModel.staff_id.in_(team_staff_ids)).all()
-        logger.info(f"[GET] /manager_requests/{manager_id} - Successfully fetched {len(team_requests)} requests for manager_id {manager_id}.")
+        logger.info(f"[GET] /requests/manager/{manager_id} - Successfully fetched {len(team_requests)} requests for manager_id {manager_id}.")
 
         team_requests_data = []
+        logger.info(f"[GET] /requests/manager/{manager_id} - Team requests: {team_requests}")
         for request in team_requests:
+            logger.info(f"[GET] /requests/manager/{manager_id} - Request: {request}")
             staff_profile = next((member for member in team_members if member['staff_id'] == request.staff_id), None)
             if staff_profile:
-                from_date = request.start_date
-                to_date = calculate_to_date(from_date, request.duration)
                 team_requests_data.append({
                     'request_id': request.request_id,
                     'staff_id': request.staff_id,
                     'staff_name': f"{staff_profile['staff_fname']} {staff_profile['staff_lname']}",
+                    'department': staff_profile['department'],
+                    'reason': request.reason,
                     'role': staff_profile['position'],
                     'work_location': request.reason,
-                    'from_date': request.start_date,
-                    'to_date': to_date.strftime('%Y-%m-%d'),
+                    'requested_dates': [date.strftime('%Y-%m-%d') for date in request.requested_dates] if request.requested_dates else [],
+                    'time_of_day': request.time_of_day,
                     'status': request.status
                 })
 
-        logger.info(f"[GET] /manager_requests/{manager_id} - Team requests data: {team_requests_data}")
+        logger.info(f"[GET] /requests/manager/{manager_id} - Team requests data: {team_requests_data}")
         return jsonify(team_requests_data), 200
 
     except requests.exceptions.RequestException as req_err:
-        logger.error(f"[GET] /manager_requests/{manager_id} - Error connecting to Profile service: {str(req_err)}")
+        logger.error(f"[GET] /requests/manager/{manager_id} - Error connecting to Profile service: {str(req_err)}")
         return jsonify({"error": f"Error connecting to Profile service: {str(req_err)}"}), 500
     except Exception as e:
-        logger.error(f"[GET] /manager_requests/{manager_id} - Error fetching manager requests: {str(e)}")
+        logger.error(f"[GET] /requests/manager/{manager_id} - Error fetching manager requests: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def calculate_to_date(from_date, duration):
@@ -516,19 +497,6 @@ def cancel_request(request_id):
             request_obj.status = 'Cancelled'
             db.session.commit()
 
-            schedule_update_url = "http://localhost:5004/schedules"
-            schedule_update_data = {
-                'staff_id': request_obj.staff_id,
-                'date': request_obj.start_date if isinstance(request_obj.start_date, str) else request_obj.start_date.isoformat(),
-                'department': request_obj.department,
-                'status': request_obj.status
-            }
-
-            response = requests.post(schedule_update_url, json=schedule_update_data)
-            if response.status_code != 200:
-                logger.error(f"[PUT] /requests/{request_id}/cancel - Schedule microservice responded with status code {response.status_code}")
-                return jsonify({'message': 'Request canceled, but failed to update schedule.'}), 500
-
             logger.info(f"[PUT] /requests/{request_id}/cancel - Successfully canceled request with request_id {request_id}.")
             return jsonify({'message': 'Request canceled successfully.'}), 200
         else:
@@ -621,4 +589,5 @@ def update_request(request_id):
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0",port=5000, debug=True)  
+    app.run(host="0.0.0.0", port=5000, debug=True)  
+

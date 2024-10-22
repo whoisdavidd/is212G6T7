@@ -10,12 +10,13 @@ from flasgger import Swagger
 
 load_dotenv()
 
-db_url = os.getenv("SQLALCHEMY_DATABASE_URI")
+# Constant for the database URL
+DB_URL = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -465,5 +466,54 @@ def get_barchart_data():
         logger.error(f"Error fetching bar chart data: {str(e)}")
         return jsonify({"error": "Failed to fetch bar chart data"}), 500
 
+# ------------------------------ Get Team Members by Manager ID ------------------------------
+
+@app.route('/managers/<int:manager_id>/team', methods=['GET'])
+def get_team_members(manager_id):
+    """
+    Get team members by manager ID
+    ---
+    parameters:
+      - name: manager_id
+        in: path
+        type: integer
+        required: true
+        description: The staff ID of the manager
+    responses:
+      200:
+        description: Team members fetched successfully
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              staff_id:
+                type: integer
+              staff_fname:
+                type: string
+              staff_lname:
+                type: string
+              department:
+                type: string
+              position:
+                type: string
+      404:
+        description: No team members found
+      500:
+        description: Failed to fetch team members
+    """
+    logger.info(f"Request received to fetch team members for manager_id {manager_id}.")
+    try:
+        team_members = Profile.query.filter_by(reporting_manager_id=manager_id).all()
+        if not team_members:
+            logger.warning(f"No team members found for manager_id {manager_id}.")
+            return jsonify({"message": "No team members found for this manager."}), 404
+
+        logger.info(f"Fetched {len(team_members)} team members for manager_id {manager_id}.")
+        return jsonify([member.to_dict() for member in team_members]), 200
+    except Exception as e:
+        logger.error(f"Error fetching team members: {str(e)}")
+        return jsonify({"error": "Failed to fetch team members"}), 500
+
 if __name__ == '__main__':
-    app.run(port=5002, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

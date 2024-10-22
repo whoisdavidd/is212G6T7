@@ -4,7 +4,6 @@ import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import StaffCalendar from '../components/StaffCalendar';
 import StaffSchedule from '../components/StaffSchedule';
 import StaffViewTeamSchedule from '../components/StaffViewTeamSchedule';
-import WfhButton from '../components/WfhButton';
 import Stack from '@mui/material/Stack';
 
 function Staff() {
@@ -19,7 +18,6 @@ function Staff() {
           <StaffCalendar onViewChange={setViewType} />
         </Stack>
         <Stack alignItems="flex-start" sx={{ width: '100%' }}>
-          <WfhButton />
         </Stack>
         <Stack sx={{ width: '100%' }}>
           {viewType === 'personal' ? <StaffSchedule /> : <StaffViewTeamSchedule />}
