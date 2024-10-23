@@ -205,7 +205,7 @@ def add_request():
 
 # ------------------------------ Get all requests by staff_id ------------------------------
 
-@app.route('/requests/<int:staff_id>', methods=['GET'])
+@app.route('/staffRequests/<int:staff_id>', methods=['GET'])
 def get_staff_requests(staff_id):
     """
     Get all requests by staff_id
@@ -300,12 +300,13 @@ def get_request(request_id):
         if not request_obj:
             logger.warning(f"[GET] /requests/{request_id} - Request with request_id {request_id} not found.")
             return jsonify({'message': 'Request not found'}), 404
+        
         logger.info(f"[GET] /requests/{request_id} - Successfully fetched request with request_id {request_id}.")
         return jsonify(request_obj.to_dict()), 200
+
     except Exception as e:
         logger.error(f"[GET] /requests/{request_id} - Error fetching request: {str(e)}")
         return jsonify({'error': 'Failed to fetch request'}), 500
-    
 
 # ------------------------------ Get all requests by manager_id ------------------------------
 
@@ -345,7 +346,10 @@ def get_manager_requests(manager_id):
     """
     logger.info(f"[GET] /manager_requests/{manager_id} - Received request to fetch requests for manager_id {manager_id}.")
     try:
-        profile_service_url = f"http://localhost:5002/managers/{manager_id}/team"
+        # profile_service_url = "http://localhost:5002/managers/{manager_id}/team"
+        
+        #comment above and use below url when using docker    
+        profile_service_url = f"http://micro_profile:5000/managers/{manager_id}/team"
         response = requests.get(profile_service_url)
         if response.status_code != 200:
             logger.error(f"[GET] /requests/manager/{manager_id} - Failed to fetch team members from Profile service for manager_id {manager_id}.")
@@ -591,3 +595,4 @@ def update_request(request_id):
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)  
 
+# port 5003
