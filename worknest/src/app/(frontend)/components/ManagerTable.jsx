@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+"use client";
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Table,
     TableBody,
@@ -14,10 +15,6 @@ import {
     Box,
     TablePagination,
     TextField,
-    Select,
-    MenuItem,
-    InputLabel,
-    FormControl,
     Grid,
 } from '@mui/material';
 import { styled } from '@mui/system';
@@ -72,7 +69,7 @@ const getStartOfCurrentWeek = () => {
     return today.add(diff, 'day').startOf('day');
 };
 
-// Function to get an array of date strings for a given week
+// Function to get dates of the current week (Monday to Friday)
 const getWeekDates = (startDate) => {
     const dates = [];
     for (let i = 0; i < 5; i++) { // 5 working days
@@ -83,70 +80,89 @@ const getWeekDates = (startDate) => {
 };
 
 const ManagerTable = () => {
-    const [sortConfig, setSortConfig] = useState({ key: 'staff_fname', direction: 'asc' });
-    const [filters, setFilters] = useState({
-        workLocation: '',
-        department: '',
-    });
-    const [searchQuery, setSearchQuery] = useState('');
+    const [staffId, setStaffId] = useState(null);
+    const [department, setDepartment] = useState(null);
     const [schedules, setSchedules] = useState([]);
     const [profiles, setProfiles] = useState([]);
     const [combinedData, setCombinedData] = useState([]);
     const [workFromHomeCount, setWorkFromHomeCount] = useState({});
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
     const [open, setOpen] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
-    const [selectedWeekStart, setSelectedWeekStart] = useState(getStartOfCurrentWeek());
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(5);
     const [dateFilter, setDateFilter] = useState(null);
+    const [selectedWeekStart, setSelectedWeekStart] = useState(getStartOfCurrentWeek());
 
+    // Retrieve sessionStorage data on client-side and ensure staffId is updated correctly
     useEffect(() => {
-        const fetchData = async () => {
+        if (typeof window !== 'undefined') {
+            const storedStaffId = sessionStorage.getItem('staff_id');
+            const storedDepartment = sessionStorage.getItem('department');
+
+            if (storedStaffId) {
+                setStaffId(storedStaffId);
+                console.log('staffId set to:', storedStaffId);
+            } else {
+                console.log('No staff_id found in sessionStorage');
+            }
+
+            if (storedDepartment) {
+                setDepartment(storedDepartment);
+                console.log('department set to:', storedDepartment);
+            } else {
+                console.log('No department found in sessionStorage');
+            }
+        }
+    }, []);
+
+    // Fetch schedules when staffId changes
+    useEffect(() => {
+        const fetchSchedules = async () => {
+            if (!staffId) {
+                toast.error('Staff ID not found in session.');
+                return;
+            }
             try {
-                const storedManagerId = sessionStorage.getItem('staff_id');
-                if (!storedManagerId) {
-                    toast.error('Manager ID not found in session.');
-                    return;
-                }
-
-                // Fetch team schedules from micro_schedule service
-                const scheduleResponse = await axios.get(
-                    `http://127.0.0.1:5004/schedules/manager/${storedManagerId}`
-                );
-
-                // Extract unique staff_ids from schedules
-                const staffIds = [
-                    ...new Set(scheduleResponse.data.map((sched) => sched.staff_id)),
-                ];
-
-                if (staffIds.length === 0) {
-                    toast.info('No team schedules found.');
-                    setSchedules([]);
-                    setProfiles([]);
-                    return;
-                }
-
-                // Fetch profiles for these staff_ids from micro_profile service
-                const profilePromises = staffIds.map(id =>
-                    axios.get(`http://127.0.0.1:5002/profile/${id}`)
-                );
-
-                const profileResponses = await Promise.all(profilePromises);
-                const profilesData = profileResponses.map(res => res.data);
-
-                setSchedules(scheduleResponse.data);
-                setProfiles(profilesData);
+                const response = await axios.get(`http://127.0.0.1:5004/schedules/manager/${staffId}`);
+                setSchedules(response.data);
             } catch (error) {
-                console.error('Error fetching data:', error);
-                toast.error('Failed to fetch data. Please try again later.');
+                console.error('Error fetching schedules:', error);
+                toast.error('Failed to fetch schedules. Please try again later.');
             }
         };
 
-        fetchData();
-    }, []);
+        fetchSchedules();
+    }, [staffId]);
 
+    // Fetch profiles when schedules change
     useEffect(() => {
-        // Combine schedules with profiles
+        const fetchProfiles = async () => {
+            try {
+                const staffIds = [
+                    ...new Set(schedules.map((sched) => sched.staff_id)),
+                ];
+                if (staffIds.length === 0) {
+                    setProfiles([]);
+                    return;
+                }
+                const profilePromises = staffIds.map((id) =>
+                    axios.get(`http://127.0.0.1:5002/profile/${id}`)
+                );
+                const profileResponses = await Promise.all(profilePromises);
+                const profilesData = profileResponses.map((res) => res.data);
+                setProfiles(profilesData);
+            } catch (error) {
+                console.error('Error fetching profiles:', error);
+                toast.error('Failed to fetch profiles. Please try again later.');
+            }
+        };
+
+        fetchProfiles();
+    }, [schedules]);
+
+    // Combine schedules with profiles when schedules or profiles change
+    useEffect(() => {
         const combined = schedules.map((sched) => {
             const profile = profiles.find((p) => p.staff_id === sched.staff_id);
             return {
@@ -177,58 +193,17 @@ const ManagerTable = () => {
         setSortConfig({ key: column, direction: isAsc ? 'desc' : 'asc' });
     };
 
-    const sortedData = [...combinedData].sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-            return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-    });
-
-    const filteredData = sortedData.filter((data) => {
-        const matchesWorkLocation = filters.workLocation
-            ? data.location.toLowerCase() === filters.workLocation.toLowerCase()
-            : true;
-        const matchesDepartment = filters.department
-            ? data.department.toLowerCase().includes(filters.department.toLowerCase())
-            : true;
-        const matchesSearch = searchQuery
-            ? `${data.staff_fname} ${data.staff_lname}`
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase())
-            : true;
-        const matchesDate = dateFilter
-            ? data.date === dateFilter
-            : true;
-        return matchesWorkLocation && matchesDepartment && matchesSearch && matchesDate;
-    });
-
-    const handleFilterChange = (key, value) => {
-        setFilters((prevFilters) => ({
-            ...prevFilters,
-            [key]: value,
-        }));
-    };
-
-    const handleClearFilters = () => {
-        setFilters({
-            workLocation: '',
-            department: '',
+    const sortedData = useMemo(() => {
+        return [...combinedData].sort((a, b) => {
+            if (a[sortConfig.key] < b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (a[sortConfig.key] > b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
         });
-        setSearchQuery('');
-        setDateFilter(null);
-    };
-
-    const handleChangePage = (event, newPage) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
+    }, [combinedData, sortConfig]);
 
     const handleOpen = (schedule) => {
         setSelectedSchedule(schedule);
@@ -240,24 +215,45 @@ const ManagerTable = () => {
         setSelectedSchedule(null);
     };
 
-    // Get dates for the selected week
-    const selectedWeekDates = getWeekDates(selectedWeekStart);
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+    };
 
-    // Prepare data for the visual summary (Bar Chart)
-    const chartData = {
-        labels: selectedWeekDates,
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    const handleDateFilterChange = (newValue) => {
+        if (newValue && newValue.isValid()) {
+            const formattedDate = newValue.format('YYYY-MM-DD');
+            setDateFilter(formattedDate);
+        } else {
+            setDateFilter(null);
+        }
+    };
+
+    const filteredData = useMemo(() => {
+        return sortedData.filter((schedule) => {
+            if (dateFilter) {
+                return schedule.date === dateFilter;
+            }
+            return true;
+        });
+    }, [sortedData, dateFilter]);
+
+    // Generate data for Bar chart
+    const barChartData = {
+        labels: getWeekDates(selectedWeekStart),
         datasets: [
             {
-                label: 'Employees Working from Home',
-                data: selectedWeekDates.map(date => workFromHomeCount[date] || 0),
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1,
+                label: 'Work From Home Count',
+                data: getWeekDates(selectedWeekStart).map(date => workFromHomeCount[date] || 0),
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
             },
         ],
     };
 
-    // Handlers to navigate weeks
     const handlePrevWeek = () => {
         const prevWeek = selectedWeekStart.subtract(1, 'week');
         setSelectedWeekStart(prevWeek);
@@ -271,169 +267,97 @@ const ManagerTable = () => {
     return (
         <>
             <Typography variant="h4" gutterBottom>
-                Team Work-from-Home Dashboard
+                Manager Dashboard
             </Typography>
 
-            {/* Visual Summary */}
-            <Paper style={{ padding: '20px', marginBottom: '20px' }}>
-                <Typography variant="h6" gutterBottom>
-                    Work-from-Home Summary
-                </Typography>
-                {/* Week Navigation */}
-                <Grid container spacing={2} alignItems="center" style={{ marginBottom: '10px' }}>
-                    <Grid item>
-                        <Button variant="outlined" onClick={handlePrevWeek}>
-                            Previous Week
-                        </Button>
-                    </Grid>
-                    <Grid item>
-                        <Typography variant="body1">
-                            {selectedWeekStart.format('MMM D, YYYY')} - {selectedWeekStart.add(4, 'day').format('MMM D, YYYY')}
-                        </Typography>
-                    </Grid>
-                    <Grid item>
-                        <Button variant="outlined" onClick={handleNextWeek}>
-                            Next Week
-                        </Button>
-                    </Grid>
+            <Grid container spacing={2} alignItems="center">
+                <Grid item>
+                    <Button variant="contained" onClick={handlePrevWeek}>
+                        Previous Week
+                    </Button>
                 </Grid>
-                <Bar data={chartData} />
-            </Paper>
-
-            <Grid container spacing={2} alignItems="center" style={{ marginBottom: '20px' }}>
-                {/* Search Bar */}
-                <Grid item xs={12} sm={6}>
-                    <TextField
-                        label="Search by Name"
-                        variant="outlined"
-                        fullWidth
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                <Grid item>
+                    <Typography variant="body1">
+                        {selectedWeekStart.format('MMM D, YYYY')} - {selectedWeekStart.add(4, 'day').format('MMM D, YYYY')}
+                    </Typography>
                 </Grid>
-
-                {/* Filter: Work Location */}
-                <Grid item xs={12} sm={3}>
-                    <FormControl variant="outlined" fullWidth>
-                        <InputLabel>Work Location</InputLabel>
-                        <Select
-                            value={filters.workLocation}
-                            onChange={(e) => handleFilterChange('workLocation', e.target.value)}
-                            label="Work Location"
-                        >
-                            <MenuItem value="">
-                                <em>All</em>
-                            </MenuItem>
-                            <MenuItem value="OFFICE">Office</MenuItem>
-                            <MenuItem value="REMOTE">Remote</MenuItem>
-                        </Select>
-                    </FormControl>
+                <Grid item>
+                    <Button variant="contained" onClick={handleNextWeek}>
+                        Next Week
+                    </Button>
                 </Grid>
-
-                {/* Filter: Department */}
-                <Grid item xs={12} sm={3}>
-                    <TextField
-                        label="Department"
-                        variant="outlined"
-                        fullWidth
-                        value={filters.department}
-                        onChange={(e) => handleFilterChange('department', e.target.value)}
-                    />
-                </Grid>
-
-                {/* Date Filter */}
-                <Grid item xs={12} sm={6}>
+                <Grid item xs>
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
                         <DatePicker
                             label="Filter by Date"
                             value={dateFilter ? dayjs(dateFilter) : null}
-                            onChange={(newValue) => {
-                                if (newValue && newValue.isValid()) {
-                                    const formattedDate = newValue.format('YYYY-MM-DD');
-                                    setDateFilter(formattedDate);
-                                } else {
-                                    setDateFilter(null);
-                                }
-                            }}
+                            onChange={handleDateFilterChange}
                             renderInput={(params) => <TextField {...params} fullWidth />}
                         />
                     </LocalizationProvider>
                 </Grid>
-
-                {/* Clear Filters Button */}
-                <Grid item xs={12} sm={6}>
-                    <Button variant="contained" color="secondary" onClick={handleClearFilters} fullWidth>
-                        Clear Filters
-                    </Button>
-                </Grid>
             </Grid>
 
-            {/* Employee Schedules Table */}
-            <TableContainer component={Paper}>
+            <Box sx={{ mt: 4 }}>
+                <Bar data={barChartData} />
+            </Box>
+
+            <TableContainer component={Paper} sx={{ mt: 4 }}>
                 <Table>
                     <TableHead>
                         <TableRow>
                             <TableCell>
                                 <TableSortLabel
                                     active={sortConfig.key === 'staff_fname'}
-                                    direction={sortConfig.key === 'staff_fname' ? sortConfig.direction : 'asc'}
+                                    direction={sortConfig.direction}
                                     onClick={() => handleSort('staff_fname')}
                                 >
-                                    <strong>Name</strong>
+                                    Name
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
                                     active={sortConfig.key === 'position'}
-                                    direction={sortConfig.key === 'position' ? sortConfig.direction : 'asc'}
+                                    direction={sortConfig.direction}
                                     onClick={() => handleSort('position')}
                                 >
-                                    <strong>Position</strong>
+                                    Position
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
                                     active={sortConfig.key === 'department'}
-                                    direction={sortConfig.key === 'department' ? sortConfig.direction : 'asc'}
+                                    direction={sortConfig.direction}
                                     onClick={() => handleSort('department')}
                                 >
-                                    <strong>Department</strong>
+                                    Department
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
                                     active={sortConfig.key === 'date'}
-                                    direction={sortConfig.key === 'date' ? sortConfig.direction : 'asc'}
+                                    direction={sortConfig.direction}
                                     onClick={() => handleSort('date')}
                                 >
-                                    <strong>Date</strong>
+                                    Date
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
                                     active={sortConfig.key === 'location'}
-                                    direction={sortConfig.key === 'location' ? sortConfig.direction : 'asc'}
+                                    direction={sortConfig.direction}
                                     onClick={() => handleSort('location')}
                                 >
-                                    <strong>Work Location</strong>
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'country'}
-                                    direction={sortConfig.key === 'country' ? sortConfig.direction : 'asc'}
-                                    onClick={() => handleSort('country')}
-                                >
-                                    <strong>Country</strong>
+                                    Work Location
                                 </TableSortLabel>
                             </TableCell>
                             <TableCell>
                                 <TableSortLabel
                                     active={sortConfig.key === 'status'}
-                                    direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
+                                    direction={sortConfig.direction}
                                     onClick={() => handleSort('status')}
                                 >
-                                    <strong>Status</strong>
+                                    Status
                                 </TableSortLabel>
                             </TableCell>
                         </TableRow>
@@ -442,17 +366,12 @@ const ManagerTable = () => {
                         {filteredData
                             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                             .map((schedule) => (
-                                <TableRow
-                                    key={`${schedule.staff_id}-${schedule.date}`}
-                                    onClick={() => handleOpen(schedule)}
-                                    style={{ cursor: 'pointer' }}
-                                >
+                                <TableRow key={`${schedule.staff_id}-${schedule.date}`} onClick={() => handleOpen(schedule)} style={{ cursor: 'pointer' }}>
                                     <TableCell>{`${schedule.staff_fname} ${schedule.staff_lname}`}</TableCell>
                                     <TableCell>{schedule.position}</TableCell>
                                     <TableCell>{schedule.department}</TableCell>
                                     <TableCell>{schedule.date}</TableCell>
                                     <TableCell>{schedule.location}</TableCell>
-                                    <TableCell>{schedule.country}</TableCell>
                                     <TableCell>
                                         <StatusLabel status={schedule.status}>
                                             {schedule.status}
@@ -520,7 +439,6 @@ const ManagerTable = () => {
             <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />
         </>
     );
-
 };
 
 export default ManagerTable;
