@@ -8,7 +8,7 @@ import {
     TableHead,
     TableRow,
     Paper,
-    // Button,
+    Button,
     TableSortLabel,
     Typography,
     Modal,
@@ -27,8 +27,7 @@ import 'chart.js/auto';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { Button, ButtonGroup } from '@mui/material';
-import { useRouter } from 'next/router';
+
 
 const StatusLabel = styled(Box)(({ status }) => ({
     display: 'inline-block',
@@ -109,12 +108,12 @@ const ManagerTable = () => {
                 console.log('No staff_id found in sessionStorage');
             }
 
-            if (storedDepartment) {
-                setDepartment(storedDepartment);
-                console.log('department set to:', storedDepartment);
-            } else {
-                console.log('No department found in sessionStorage');
-            }
+            // if (storedDepartment) {
+            //     setDepartment(storedDepartment);
+            //     console.log('department set to:', storedDepartment);
+            // } else {
+            //     console.log('No department found in sessionStorage');
+            // }
         }
     }, []);
 
@@ -126,7 +125,7 @@ const ManagerTable = () => {
                 return;
             }
             try {
-                const response = await axios.get(`http://127.0.0.1:5004/schedules/manager/${staffId}`);
+                const response = await axios.get(`http://127.0.0.1:5004/schedules`);
                 setSchedules(response.data);
             } catch (error) {
                 console.error('Error fetching schedules:', error);
@@ -266,39 +265,11 @@ const ManagerTable = () => {
         setSelectedWeekStart(nextWeek);
     };
 
-    const router = useRouter();
-    
-    const onViewChange = (view) => {
-        switch(view) {
-            case 'personal':
-                router.push('/Manager');
-                break;
-            case 'team':
-                router.push('/Manager/viewRequests');
-                break;
-            default:
-                router.push('/Manager');
-        }
-    };
 
     return (
         <>
-            <ButtonGroup variant="contained" aria-label="outlined primary button group">
-                <Button 
-                    onClick={() => onViewChange('personal')}
-                    variant={router.pathname === '/Manager' ? 'contained' : 'outlined'}
-                >
-                    View Schedule
-                </Button>
-                <Button 
-                    onClick={() => onViewChange('team')}
-                    variant={router.pathname === '/Manager/viewRequests' ? 'contained' : 'outlined'}
-                >
-                    View Requests
-                </Button>
-            </ButtonGroup>
             <Typography variant="h4" gutterBottom>
-                Manager Dashboard
+                Director Dashboard
             </Typography>
 
             <Grid container spacing={2} alignItems="center">

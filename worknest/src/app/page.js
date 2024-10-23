@@ -34,6 +34,10 @@ export default function HomePage() {
           window.location.href = "/Manager";  // Redirect to Manager page
         } else if (data.data.role == 2) {  // Staff
           window.location.href = "/Staff";  // Redirect to Staff page
+        } else if (data.data.role == 1 & data.data.position == "Director") {  
+        window.location.href = "/Director";  // Redirect to Director page
+        } else if (data.data.role == 1 & data.data.position == "MD") {  
+          window.location.href = "/Director";  // Redirect to Director page
         } else {  // HR
           window.location.href = "/dashboard";  // Redirect to HR page
         }

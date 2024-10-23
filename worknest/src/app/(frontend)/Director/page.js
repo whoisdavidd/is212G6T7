@@ -1,7 +1,8 @@
 "use client";
 import React from 'react';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
-import ManagerTable from '../components/ManagerTable';
+import DirectorTable from '../components/DirectorTable';
+import Sidebar from '../components/Sidebar';
 import '../../styles/App.css';
 
 function Director() {
@@ -9,8 +10,9 @@ function Director() {
         <div className="App">
             <ResponsiveAppBar />
             <div className="staff-calendar-page">
+                <Sidebar />
                 <div className="main-content">
-                    <ManagerTable />
+                    <DirectorTable />
                 </div>
             </div>
         </div>
