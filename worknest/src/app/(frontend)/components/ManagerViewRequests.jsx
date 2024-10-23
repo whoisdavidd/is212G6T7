@@ -102,11 +102,11 @@ const ManagerViewRequests = () => {
     useEffect(() => {
         const fetchRequestsAndProfiles = async () => {
             try {
-                const storedManagerId = localStorage.getItem('managerId');
-                // const storedManagerId = 140879; // Replace with dynamic fetching or localStorage
+                // const storedManagerId = localStorage.getItem('managerId');
+                const storedManagerId = 140879; // Replace with dynamic fetching or localStorage
                 
                 // Fetch all requests for the current manager's department
-                const requestsResponse = await fetch(`http://127.0.0.1:5003/requests/manager/${storedManagerId}`);
+                const requestsResponse = await fetch(`http://127.0.0.1:5001/requests/manager/${storedManagerId}`);
                 const requestsData = await requestsResponse.json();
     
                 if (requestsResponse.ok) {
@@ -116,7 +116,7 @@ const ManagerViewRequests = () => {
                 }
     
                 // Fetch all profiles (if needed)
-                const profilesResponse = await fetch('http://127.0.0.1:5002/profile');
+                const profilesResponse = await fetch('http://127.0.0.1:5000/profile');
                 const profilesData = await profilesResponse.json();
     
                 setProfiles(profilesData);
@@ -191,7 +191,7 @@ const ManagerViewRequests = () => {
 
     const approveRequest = async (request, comment) => {
         try {
-            const response = await fetch('http://127.0.0.1:5006/approve_request', {
+            const response = await fetch('http://127.0.0.1:5004/approve_request', {
                 method: 'POST',
                 credentials: 'include', 
                 headers: {
@@ -220,7 +220,7 @@ const ManagerViewRequests = () => {
 
     const rejectRequest = async (request, reason) => {
         try {
-            const response = await fetch('http://127.0.0.1:5006/reject_request', {
+            const response = await fetch('http://127.0.0.1:5004/reject_request', {
                 method: 'POST',
                 credentials: 'include', 
                 headers: {
@@ -265,7 +265,7 @@ const ManagerViewRequests = () => {
             }
     
             // Make the request to withdraw
-            const response = await fetch(`http://127.0.0.1:5003/request/withdraw/${requestId}`, {
+            const response = await fetch(`http://127.0.0.1:5001/request/withdraw/${requestId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
