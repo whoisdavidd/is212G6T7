@@ -1,51 +1,63 @@
-import * as React from 'react';
+"use client";
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import { DataGrid } from '@mui/x-data-grid';
-import { Typography } from '@mui/material';
-import Button from '@mui/material/Button';
+import { Typography, Button } from '@mui/material';
 
 export default function StaffViewTeamSchedule() {
-  const [rows, setRows] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState(null);
-  const staffId = sessionStorage.getItem('staff_id');
-  const department = sessionStorage.getItem('department');
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [staffId, setStaffId] = useState(null);
+  const [department, setDepartment] = useState(null);
 
-  React.useEffect(() => {
-    const fetchSchedules = async () => {
-      if (!staffId) {
-        setError('Staff ID not found. Please log in again.');
-        setLoading(false);
-        return;
-      }
-      try {
-        const response = await fetch(`http://localhost:5004/schedules/${staffId}`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch schedules');
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedStaffId = sessionStorage.getItem('staff_id');
+      const storedDepartment = sessionStorage.getItem('department');
+      setStaffId(storedStaffId);
+      setDepartment(storedDepartment);
+
+      const fetchSchedules = async () => {
+        if (!storedStaffId) {
+          setError('Staff ID not found. Please log in again.');
+          setLoading(false);
+          return;
         }
-        const data = await response.json();
-        if (data.length === 0) {
-          setError('No schedules found.');
-        } else {
-          const formattedData = data.map((item) => ({
-            id: `${item.staff_id}-${item.date}`,
-            staff_id: item.staff_id,
-            department: item.department,
-            start_date: item.date,
-            status: item.status,
-          }));
-          setRows(formattedData);
+        try {
+          const response = await fetch(`http://localhost:5004/schedules/${storedStaffId}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch schedules');
+          }
+          const data = await response.json();
+          if (data.length === 0) {
+            setError('No schedules found.');
+          } else {
+            const formattedData = data.map((item) => ({
+              id: `${item.staff_id}-${item.date}`,
+              staff_id: item.staff_id,
+              department: item.department,
+              start_date: item.date,
+              status: item.status,
+            }));
+            setRows(formattedData);
+          }
+        } catch (error) {
+          console.error('Error fetching schedule data:', error);
+          setError('Failed to fetch schedules. Please try again later.');
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error fetching schedule data:', error);
-        setError('Failed to fetch schedules. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSchedules();
-  }, [staffId]);
+      };
+      fetchSchedules();
+    }
+  }, []);
+
+  const handleCancelClick = (request_id) => {
+    // Implement cancellation logic if applicable
+    // This function might be passed down or handled differently
+  };
 
   const columns = [
     { field: 'staff_id', headerName: 'Staff ID', width: 100 },
@@ -58,11 +70,9 @@ export default function StaffViewTeamSchedule() {
       width: 150,
       renderCell: (params) => {
         const { staff_id, status } = params.row;
-        const currentStaffId = sessionStorage.getItem('staff_id');
-
         return (
           <div>
-            {staff_id === currentStaffId && status === 'Pending' && (
+            {staff_id === staffId && status === 'Pending' && (
               <Button
                 variant="contained"
                 color="secondary"

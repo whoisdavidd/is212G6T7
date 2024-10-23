@@ -152,48 +152,16 @@ def update_schedule(staff_id, date):
 @app.route('/schedules', methods=['GET'])
 def get_schedules():
     """
-    Get schedules, filtered based on user role
+    Get all schedules
     ---
-    parameters:
-      - name: staff_id
-        in: query
-        type: integer
-        required: true
-        description: Staff ID of the requester
     responses:
       200:
         description: Schedules fetched successfully
-      403:
-        description: Unauthorized access
-      500:
-        description: Failed to fetch schedules
     """
-    staff_id = request.args.get('staff_id')
-    logger.info(f"Request received to fetch schedules for staff_id: {staff_id}")
-    
-    if not staff_id:
-        return jsonify({"error": "Staff ID is required"}), 400
-
+    logger.info("Request received to fetch all schedules.")
     try:
-        # Fetch user profile from micro_profile service
-        profile_response = requests.get(f"http://127.0.0.1:5002/profile/{staff_id}")
-        if profile_response.status_code != 200:
-            return jsonify({"error": "Failed to fetch user profile"}), 500
-        
-        user_profile = profile_response.json()
-        user_role = user_profile.get('role')
-        user_department = user_profile.get('department')
-
-        if user_role == 2:  # Staff
-            schedules = Schedule.query.filter_by(department=user_department).all()
-            logger.info(f"Fetched {len(schedules)} schedules for department {user_department}.")
-        elif user_role in [1, 3]:  # Manager or HR
-            schedules = Schedule.query.all()
-            logger.info(f"Fetched {len(schedules)} schedules across all departments.")
-        else:
-            return jsonify({"error": "Unauthorized access"}), 403
-        
-        return jsonify([schedule.to_dict() for schedule in schedules]), 200
+        schedules = Schedule.query.all()
+        return jsonify([s.to_dict() for s in schedules]), 200
     except Exception as e:
         logger.error(f"Error fetching schedules: {str(e)}")
         return jsonify({"error": "Failed to fetch schedules"}), 500

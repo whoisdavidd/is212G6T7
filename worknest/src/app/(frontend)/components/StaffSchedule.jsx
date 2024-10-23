@@ -1,4 +1,5 @@
-import * as React from 'react';
+"use client";
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import { DataGrid } from '@mui/x-data-grid';
@@ -7,13 +8,18 @@ import 'react-toastify/dist/ReactToastify.css';
 import EditButton from './EditButton';
 
 export default function FullFeaturedCrudGrid() {
-  const [rows, setRows] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState(null);
-  const staff_id = sessionStorage.getItem("staff_id");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [staff_id, setStaffId] = useState(null);
+  const [role, setRole] = useState(null);
+  const [department, setDepartment] = useState(null);
 
   const fetchEventData = async (retryCount = 3) => {
     try {
+      if (!staff_id) {
+        throw new Error('Staff ID not found.');
+      }
       const response = await fetch(`http://127.0.0.1:5003/requests/${staff_id}`);
       if (!response.ok) {
         const errorData = await response.json();
@@ -22,30 +28,31 @@ export default function FullFeaturedCrudGrid() {
       const data = await response.json();
       if (data.length === 0) {
         setError('No requests found.');
-      } else {
-        const formattedData = data.map((item) => {
-          const formattedDates = Array.isArray(item.requested_dates)
-            ? item.requested_dates.map(date => new Intl.DateTimeFormat('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              }).format(new Date(date))).join(', ')
-            : 'N/A';
-
-          return {
-            request_id: item.request_id,
-            staff_id: item.staff_id,
-            department: item.department,
-            requested_dates: formattedDates,
-            reason: item.reason,
-            status: item.status,
-            reporting_manager_id: item.reporting_manager_id,
-            reporting_manager_name: item.reporting_manager_name,
-            time_of_day: item.time_of_day,
-          };
-        });
-        setRows(formattedData);
+        setLoading(false);
+        return;
       }
+      const formattedData = data.map((item) => {
+        const formattedDates = Array.isArray(item.requested_dates)
+          ? item.requested_dates.map(date => new Intl.DateTimeFormat('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            }).format(new Date(date))).join(', ')
+          : 'N/A';
+
+        return {
+          request_id: item.request_id,
+          staff_id: item.staff_id,
+          department: item.department,
+          requested_dates: formattedDates,
+          reason: item.reason,
+          status: item.status,
+          reporting_manager_id: item.reporting_manager_id,
+          reporting_manager_name: item.reporting_manager_name,
+          time_of_day: item.time_of_day,
+        };
+      });
+      setRows(formattedData);
       setLoading(false);
     } catch (error) {
       if (retryCount > 0) {
@@ -58,9 +65,88 @@ export default function FullFeaturedCrudGrid() {
     }
   };
 
-  React.useEffect(() => {
-    fetchEventData();
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedStaffId = sessionStorage.getItem('staff_id');
+      const storedRole = sessionStorage.getItem('role');
+      const storedDepartment = sessionStorage.getItem('department');
+      setStaffId(storedStaffId);
+      setRole(storedRole);
+      setDepartment(storedDepartment);
+      fetchEventData();
+    }
   }, []);
+
+  const handleWithdrawClick = async (request_id) => {
+    const originalRows = [...rows];
+    setRows(rows.map(row => (
+      row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
+    )));
+    try {
+      if (!role || !staff_id || !department) {
+        toast.error("User session is invalid. Please log in again.");
+        return;
+      }
+
+      const response = await fetch(`http://127.0.0.1:5003/requests/${request_id}/withdraw`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Role': role,
+          'X-Staff-ID': staff_id,
+          'X-Department': department,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success("Request withdrawn successfully.");
+      } else {
+        setRows(originalRows);
+        toast.error(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      setRows(originalRows);
+      toast.error("An unexpected error occurred. Please try again.");
+    }
+  };
+
+  const handleCancelClick = async (request_id) => {
+    const originalRows = [...rows];
+    setRows(rows.map(row => (
+      row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
+    )));
+    try {
+      if (!role || !staff_id || !department) {
+        toast.error("User session is invalid. Please log in again.");
+        return;
+      }
+
+      console.log(role, staff_id, department);
+
+      const response = await fetch(`http://127.0.0.1:5003/requests/${request_id}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Role': role,
+          'X-Staff-ID': staff_id,
+          'X-Department': department,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success("Request canceled successfully.");
+      } else {
+        setRows(originalRows);
+        toast.error(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      setRows(originalRows);
+      console.log(error);
+      toast.error("An unexpected error occurred. Please try again.");
+    }
+  };
 
   const columns = [
     { field: 'staff_id', headerName: 'Staff ID', width: 100 },
@@ -100,85 +186,6 @@ export default function FullFeaturedCrudGrid() {
       },
     },
   ];
-
-  const handleWithdrawClick = async (request_id) => {
-    const originalRows = [...rows];
-    setRows(rows.map(row => (
-      row.request_id === request_id ? { ...row, status: 'Withdrawn' } : row
-    )));
-    try {
-      const role = sessionStorage.getItem('role');
-      const staffId = sessionStorage.getItem('staff_id');
-      const department = sessionStorage.getItem('department');
-
-      if (!role || !staffId || !department) {
-        toast.error("User session is invalid. Please log in again.");
-        return;
-      }
-
-      const response = await fetch(`http://127.0.0.1:5003/requests/${request_id}/withdraw`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Role': role,
-          'X-Staff-ID': staffId,
-          'X-Department': department,
-        },
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        toast.success("Request withdrawn successfully.");
-      } else {
-        setRows(originalRows);
-        toast.error(`Error: ${data.message}`);
-      }
-    } catch (error) {
-      setRows(originalRows);
-      toast.error("An unexpected error occurred. Please try again.");
-    }
-  };
-
-  const handleCancelClick = async (request_id) => {
-    const originalRows = [...rows];
-    setRows(rows.map(row => (
-      row.request_id === request_id ? { ...row, status: 'Cancelled' } : row
-    )));
-    try {
-      const role = sessionStorage.getItem('role');
-      const staffId = sessionStorage.getItem('staff_id');
-      const department = sessionStorage.getItem('department');
-
-      if (!role || !staffId || !department) {
-        toast.error("User session is invalid. Please log in again.");
-        return;
-      }
-
-      console.log(role, staffId, department);
-
-      const response = await fetch(`http://127.0.0.1:5003/requests/${request_id}/cancel`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Role': role,
-          'X-Staff-ID': staffId,
-          'X-Department': department,
-        },
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        toast.success("Request canceled successfully.");
-      } else {
-        setRows(originalRows);
-        toast.error(`Error: ${data.message}`);
-      }
-    } catch (error) {
-      setRows(originalRows);
-      console.log(error);
-      toast.error("An unexpected error occurred. Please try again.");
-    }
-  };
 
   if (loading) return <div>Loading requests...</div>;
   if (error) return <div>{error}</div>;
