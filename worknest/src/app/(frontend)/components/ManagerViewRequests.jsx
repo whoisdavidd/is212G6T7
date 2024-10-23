@@ -40,7 +40,7 @@ const ManagerViewRequests = () => {
             try {
                 const storedManagerId = sessionStorage.getItem('staff_id');
                 const response = await fetch(`http://127.0.0.1:5003/requests/manager/${storedManagerId}`);
-                
+
                 if (!response.ok) {
                     throw new Error(`Error fetching requests: ${response.statusText}`);
                 }
@@ -76,29 +76,41 @@ const ManagerViewRequests = () => {
         }
 
         const endpoint = newStatus === 'Approved' ? '/approve_request' : '/reject_request';
-        const response = await fetch(`http://127.0.0.1:5006${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                request_id: currentRequest.request_id,
-                reporting_manager_id: sessionStorage.getItem('staff_id'),
-                approver_comment: newStatus === 'Approved' ? approvalComment : rejectReason,
-            }),
-        });
+        const bodyData = {
+            request_id: currentRequest.request_id,
+            reporting_manager_id: sessionStorage.getItem('staff_id'),
+            approver_comment: newStatus === 'Approved' ? approvalComment : rejectReason,
+        };
+        console.log('Body data:', bodyData);
+        try {
+            const response = await fetch(`http://127.0.0.1:5006${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bodyData),
+                
+            });
 
-        if (response.ok) {
-            setRequests(prevRequests =>
-                prevRequests.map(req =>
-                    req.request_id === currentRequest.request_id
-                        ? { ...req, status: newStatus }
-                        : req
-                )
-            );
-            setOpenConfirmDialog(false);
-        } else {
-            alert('Failed to update request status');
+            if (response.ok) {
+                setRequests(prevRequests =>
+                    prevRequests.map(req =>
+                        req.request_id === currentRequest.request_id
+                            ? { ...req, status: newStatus }
+                            : req
+                    )
+                );
+                setOpenConfirmDialog(false);
+                // Reset the appropriate state variables
+                setRejectReason('');
+                setApprovalComment('');
+                setWithdrawReason('');
+            } else {
+                alert('Failed to update request status');
+            }
+        } catch (error) {
+            console.error('Error updating request status:', error);
+            alert('An error occurred while updating the request status');
         }
     };
 
@@ -195,7 +207,12 @@ const ManagerViewRequests = () => {
                         </>
                     )}
                 </DialogContent>
-                <Button onClick={handleConfirmStatusChange}>Confirm</Button>
+                <Button onClick={handleConfirmStatusChange} color="primary">
+                    Confirm
+                </Button>
+                <Button onClick={() => setOpenConfirmDialog(false)} color="secondary">
+                    Cancel
+                </Button>
             </Dialog>
         </div>
     );

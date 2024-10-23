@@ -598,21 +598,18 @@ INSERT INTO profile(Staff_ID,Staff_FName,Staff_LName,department,Position,Country
 
 
 CREATE TABLE request (
-    request_id INT PRIMARY KEY,
-    staff_id INT NOT NULL,
+    request_id SERIAL PRIMARY KEY,
+    staff_id INTEGER NOT NULL,
     department VARCHAR(50) NOT NULL,
-    start_date DATE NOT NULL,               -- Using DATE for storing dates
     reason VARCHAR(50) NOT NULL,
-    duration INT NOT NULL,
     status VARCHAR(50) NOT NULL,
-    reporting_manager_id INT NOT NULL,
+    reporting_manager_id INTEGER NOT NULL,
     reporting_manager_name VARCHAR(50) NOT NULL,
-    reporting_manager_email VARCHAR(50) NOT NULL,  -- Added field for approver email -- easier to retrieve for sending of emails
-    requester_email VARCHAR(50) NOT NULL,          -- Added field for requester email
-
-    day_id SERIAL NOT NULL,
-    days INT[],
-    approver_comment VARCHAR(50)
+    reporting_manager_email VARCHAR(50) NOT NULL,
+    requester_email VARCHAR(50) NOT NULL,
+    approver_comment VARCHAR(50),
+    requested_dates DATE[],
+    time_of_day VARCHAR(10) DEFAULT 'Full Day'
 );
 
 CREATE table schedule(
@@ -624,15 +621,15 @@ CREATE table schedule(
 
 CREATE TABLE audit_log (
     log_id SERIAL PRIMARY KEY,
-    request_id INT NOT NULL UNIQUE, -- unique so no duplica 
+    request_id INT NOT NULL, -- unique so no duplica 
     requester_email VARCHAR(50) NOT NULL,
     action VARCHAR(50) NOT NULL,
     reporting_manager_id INT NOT NULL,
     reporting_manager_email VARCHAR(50) NOT NULL,
     action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    start_date DATE NOT NULL, -- The specific date being approved or rejected
-    duration INT NOT NULL,
+    requested_dates DATE,
     department VARCHAR(50) NOT NULL, 
+    time_of_day VARCHAR(10) DEFAULT 'Full Day' NOT NULL,
     approver_comment VARCHAR(50) NOT NULL 
 
 );
