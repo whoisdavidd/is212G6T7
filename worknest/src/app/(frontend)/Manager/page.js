@@ -2,7 +2,7 @@
 import React from 'react';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import Sidebar from '../components/Sidebar';
-import ManagerTable from '../components/ManagerTable';
+import ManagerTable from '../components/ManagerDashboard';
 import '../../styles/App.css';
 
 function Manager() {
