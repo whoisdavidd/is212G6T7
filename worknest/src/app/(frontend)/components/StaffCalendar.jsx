@@ -2,82 +2,38 @@ import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { Button, ButtonGroup } from '@mui/material';
+import WfhDialog from './WfhDialog';
 
-export default function StaffCalendar() {
+export default function StaffCalendar({ onViewChange }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-//   const staff_id = sessionStorage.getItem("staff_id");
-  const [staffId, setStaffId] = useState(null); 
+  const [staffId, setStaffId] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedDates, setSelectedDates] = useState([]);
 
   useEffect(() => {
-    // Ensure sessionStorage is available only in the client
-    if (typeof window !== 'undefined') {
-      const storedStaffId = sessionStorage.getItem('staff_id');
+    const storedStaffId = sessionStorage.getItem('staff_id');
+    if (storedStaffId) {
       setStaffId(storedStaffId);
-      setTimeout(() => {
-        console.log('Staff ID:', storedStaffId);
-      },100)
     }
   }, []);
 
   useEffect(() => {
+    if (!staffId) return;
+
     const fetchRequests = async () => {
       try {
-        const response = await fetch(`http://localhost:5003/request/staff/${storedStaffId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch requests');
-        }
+        const response = await fetch(`http://127.0.0.1:5003/requests/${staffId}`);
+        if (!response.ok) throw new Error('Failed to fetch requests');
+
         const data = await response.json();
-        console.log('API Response Data:', data);
-
-        // Map requests to events format for FullCalendar
-        const mappedEvents = data
-          .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled')
-          .flatMap(request => {
-            const startDate = new Date(request.start_date);
-            const duration = request.duration || 1; // Default to 1 day if duration is not provided
-            const recurringDays = request.recurring_days || []; // Ensure this is an array
-
-            // Generate events for recurring days
-            return recurringDays.flatMap(day => {
-              const eventsForDays = [];
-
-              // Loop to generate events for the next 4 weeks (adjust as necessary)
-              for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
-                const eventDate = new Date(startDate);
-                // Calculate the day for this week offset
-                const daysUntilNextOccurrence = (day + 7 * weekOffset) - startDate.getDay();
-                eventDate.setDate(startDate.getDate() + daysUntilNextOccurrence);
-
-                // Only add if the eventDate is valid (after the start date)
-                if (eventDate >= startDate) {
-                  const endDate = new Date(eventDate);
-                  endDate.setDate(eventDate.getDate() + duration); // Calculate end date based on duration
-
-                  eventsForDays.push({
-                    id: String(request.staff_id),
-                    title: `${request.reason} - ${request.status}`,
-                    start: eventDate.toISOString().split('T')[0], // Format to 'YYYY-MM-DD'
-                    end: endDate.toISOString().split('T')[0],
-                    extendedProps: {
-                      type: request.reason.toLowerCase() === 'wfh' ? 'wfh' : 'general',
-                      status: request.status,
-                    },
-                  });
-                }
-              }
-
-              return eventsForDays;
-            });
-          });
-
-        console.log('Mapped Events:', mappedEvents);
+        const mappedEvents = mapRequestsToEvents(data);
         setEvents(mappedEvents);
-        setLoading(false);
       } catch (error) {
-        console.error('Error fetching requests:', error);
         setError(error.message);
+      } finally {
         setLoading(false);
       }
     };
@@ -85,17 +41,71 @@ export default function StaffCalendar() {
     fetchRequests();
   }, [staffId]);
 
+  const mapRequestsToEvents = (data) => {
+    return data
+      .filter(request => request.status !== 'Withdrawn' && request.status !== 'Cancelled')
+      .flatMap(request => generateEventsForRequest(request));
+  };
+
+  const generateEventsForRequest = (request) => {
+    if (!request.requested_dates || !Array.isArray(request.requested_dates)) return [];
+
+    return request.requested_dates.map(date => ({
+      id: String(request.request_id),
+      title: request.reason,
+      start: new Date(date).toISOString(),
+      end: new Date(date).toISOString(),
+      extendedProps: {
+        type: request.reason.toLowerCase() === 'wfh' ? 'wfh' : 'general',
+        status: request.status,
+      },
+    }));
+  };
+
+  const handleDateSelect = (selectInfo) => {
+    const { startStr, endStr } = selectInfo;
+    const newDates = [];
+    let currentDate = new Date(startStr);
+
+    while (currentDate < new Date(endStr)) {
+      newDates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    setSelectedDates(newDates);
+  };
+
+  const handleRequestClick = () => {
+    setDialogOpen(true);
+  };
+
   if (loading) return <div>Loading requests...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <FullCalendar
-      plugins={[dayGridPlugin, interactionPlugin]}
-      initialView="dayGridMonth"
-      contentHeight="auto"
-      events={events}
-      eventContent={renderEventContent}
-    />
+    <>
+      <ButtonGroup variant="contained" aria-label="outlined primary button group">
+        <Button onClick={() => onViewChange('personal')}>Personal Schedule</Button>
+        <Button onClick={() => onViewChange('team')}>Team Schedule</Button>
+      </ButtonGroup>
+      <FullCalendar
+        plugins={[dayGridPlugin, interactionPlugin]}
+        initialView="dayGridMonth"
+        contentHeight="auto"
+        events={events}
+        selectable={true}
+        select={handleDateSelect}
+        eventContent={renderEventContent}
+        selectMirror={true}
+        unselectAuto={false}
+      />
+      {selectedDates.length > 0 && (
+        <Button variant="contained" color="primary" onClick={handleRequestClick}>
+          Request WFH for Selected Dates
+        </Button>
+      )}
+      <WfhDialog open={dialogOpen} onClose={() => setDialogOpen(false)} selectedDates={selectedDates} />
+    </>
   );
 }
 
@@ -105,9 +115,18 @@ function renderEventContent(eventInfo) {
   const status = event.extendedProps.status;
 
   return (
-    <>
+    <div style={{ 
+      padding: '5px', 
+      borderRadius: '4px', 
+      backgroundColor: isWfh ? '#e0f7fa' : '#fff3e0', 
+      whiteSpace: 'nowrap', 
+      overflow: 'hidden', 
+      textOverflow: 'ellipsis',
+      width: '100%', // Ensures the content stretches to fit the box
+      boxSizing: 'border-box' // Includes padding in the element's total width
+    }}>
       <b>{event.title}</b>
-      {isWfh && status && <div>Status: {status}</div>}
-    </>
+      {status && <div style={{ fontSize: '0.75em', color: '#616161' }}>Status: {status}</div>}
+    </div>
   );
 }

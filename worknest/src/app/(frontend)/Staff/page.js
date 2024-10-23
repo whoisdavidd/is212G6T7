@@ -1,33 +1,30 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import StaffCalendar from '../components/StaffCalendar';
 import StaffSchedule from '../components/StaffSchedule';
-import WfhButton from '../components/WfhButton';
+import StaffViewTeamSchedule from '../components/StaffViewTeamSchedule';
 import Stack from '@mui/material/Stack';
 
-
 function Staff() {
+  const [viewType, setViewType] = useState('personal');
+
   return (
     <div className="App">
       <ResponsiveAppBar />
 
-      <Stack spacing={2} alignItems="center"> {/* Centered alignment for the column layout */}
-        <Stack sx={{ width: '100%', height: '400px', overflow: 'auto' }}> {/* Fixed height for calendar */}
-          <StaffCalendar />
+      <Stack spacing={2} alignItems="center">
+        <Stack sx={{ width: '100%', height: '400px', overflow: 'auto' }}>
+          <StaffCalendar onViewChange={setViewType} />
         </Stack>
         <Stack alignItems="flex-start" sx={{ width: '100%' }}>
-          <WfhButton/>
         </Stack>
-        <Stack sx={{ width: '100%' }}> {/* Schedule takes full width */}
-          <StaffSchedule />
+        <Stack sx={{ width: '100%' }}>
+          {viewType === 'personal' ? <StaffSchedule /> : <StaffViewTeamSchedule />}
         </Stack>
       </Stack>
-      {/* <Summary /> */}
     </div>
   );
 }
 
 export default Staff;
-
-

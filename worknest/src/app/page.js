@@ -23,18 +23,21 @@ export default function HomePage() {
 
       const data = await response.json();
       if (response.ok) {
-        // Handle successful login (e.g., save a token or redirect)
         console.log("Login successful:", data);
         sessionStorage.setItem("role", data.data.role);
         sessionStorage.setItem("staff_id", data.data.staff_id);
         sessionStorage.setItem("department", data.data.department);
-        if(data.data.role === "1"){
-          window.location.href = "/Manager";  // Redirect to HR page
-        }else if (data.data.role == 2) {
+        sessionStorage.setItem("manager_id", data.data.manager_id); // Store manager ID
+
+        if (data.data.role == 3) {  // Manager
+          window.location.href = "/Manager";  // Redirect to Manager page
+        } else if (data.data.role == 2) {  // Staff
           window.location.href = "/Staff";  // Redirect to Staff page
-        }else{
+        } else {  // HR
           window.location.href = "/dashboard";  // Redirect to HR page
         }
+      } else {
+        setErrorMessage(data.message || "Login failed. Please try again.");
       }
     } catch (error) {
       console.error("Error during login:", error);
@@ -78,7 +81,7 @@ export default function HomePage() {
           />
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700" onClick = {handleLogin}
+            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700"
           >
             Login
           </button>
