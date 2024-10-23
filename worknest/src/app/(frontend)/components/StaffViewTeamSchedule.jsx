@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import { DataGrid } from '@mui/x-data-grid';
 import { Typography, Button } from '@mui/material';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function StaffViewTeamSchedule() {
   const [rows, setRows] = useState([]);
@@ -20,6 +22,7 @@ export default function StaffViewTeamSchedule() {
 
       const fetchSchedules = async () => {
         if (!storedStaffId) {
+          toast.error('Staff ID not found. Please log in again.');
           setError('Staff ID not found. Please log in again.');
           setLoading(false);
           return;
@@ -32,6 +35,7 @@ export default function StaffViewTeamSchedule() {
           }
           const data = await response.json();
           if (data.length === 0) {
+            toast.info('No schedules found.');
             setError('No schedules found.');
           } else {
             const formattedData = data.map((item) => ({
@@ -45,6 +49,7 @@ export default function StaffViewTeamSchedule() {
           }
         } catch (error) {
           console.error('Error fetching schedule data:', error);
+          toast.error('Failed to fetch schedules. Please try again later.');
           setError('Failed to fetch schedules. Please try again later.');
         } finally {
           setLoading(false);

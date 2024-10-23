@@ -15,12 +15,28 @@ export default function FullFeaturedCrudGrid() {
   const [role, setRole] = useState(null);
   const [department, setDepartment] = useState(null);
 
-  const fetchEventData = async (retryCount = 3) => {
-    try {
-      if (!staff_id) {
-        throw new Error('Staff ID not found.');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedStaffId = sessionStorage.getItem('staff_id');
+      const storedRole = sessionStorage.getItem('role');
+      const storedDepartment = sessionStorage.getItem('department');
+
+      if (storedStaffId) {
+        setStaffId(storedStaffId);
+        setRole(storedRole);
+        setDepartment(storedDepartment);
+        fetchEventData(storedStaffId);
+      } else {
+        setError('Staff ID not found.');
+        setLoading(false);
       }
-      const response = await fetch(`http://127.0.0.1:5003/requests/${staff_id}`);
+    }
+  }, []);
+
+  const fetchEventData = async (staffId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5003/requests/${staffId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch requests');
@@ -33,11 +49,15 @@ export default function FullFeaturedCrudGrid() {
       }
       const formattedData = data.map((item) => {
         const formattedDates = Array.isArray(item.requested_dates)
-          ? item.requested_dates.map(date => new Intl.DateTimeFormat('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            }).format(new Date(date))).join(', ')
+          ? item.requested_dates
+              .map((date) =>
+                new Intl.DateTimeFormat('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                }).format(new Date(date))
+              )
+              .join(', ')
           : 'N/A';
 
         return {
@@ -55,27 +75,10 @@ export default function FullFeaturedCrudGrid() {
       setRows(formattedData);
       setLoading(false);
     } catch (error) {
-      if (retryCount > 0) {
-        setTimeout(() => fetchEventData(retryCount - 1), 1000);
-      } else {
-        console.error('Error fetching event data:', error);
-        setError(error.message);
-        setLoading(false);
-      }
+      setError(error.message);
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedStaffId = sessionStorage.getItem('staff_id');
-      const storedRole = sessionStorage.getItem('role');
-      const storedDepartment = sessionStorage.getItem('department');
-      setStaffId(storedStaffId);
-      setRole(storedRole);
-      setDepartment(storedDepartment);
-      fetchEventData();
-    }
-  }, []);
 
   const handleWithdrawClick = async (request_id) => {
     const originalRows = [...rows];
