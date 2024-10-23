@@ -28,6 +28,7 @@ export default function HomePage() {
         sessionStorage.setItem("staff_id", data.data.staff_id);
         sessionStorage.setItem("department", data.data.department);
         sessionStorage.setItem("manager_id", data.data.manager_id); // Store manager ID
+        sessionStorage.setItem("position", data.data.position);
 
         if (data.data.role == 3) {  // Manager
           window.location.href = "/Manager";  // Redirect to Manager page
