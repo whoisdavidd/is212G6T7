@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from datetime import datetime
 
+
 load_dotenv()  # Load environment variables from .env file
 
 logging.basicConfig(level=logging.INFO)
@@ -159,7 +160,7 @@ def update_request_status(request_id, new_status, reporting_manager_id, approver
     request_record['approver_comment'] = approver_comment
 
     # Update request status in micro_request service
-    update_response = requests.put(f"{MICRO_REQUEST_URL}/requests/{request_id}", json=request_record)
+    update_response = request.put(f"{MICRO_REQUEST_URL}/requests/{request_id}", json=request_record)
     if update_response.status_code != 200:
         logging.error(f"Failed to update request status for request_id {request_id}.")
         return False
@@ -187,5 +188,5 @@ def get_audit_log():
     return jsonify(log_list), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5004, debug=True) 
+    app.run(host='0.0.0.0', port=5006, debug=True) 
 
