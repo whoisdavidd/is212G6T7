@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import HomePage from "../../app/page.js";
+import HomePage from "../page.js";
 // Mock the fetch function
 global.fetch = jest.fn(() =>
   Promise.resolve({

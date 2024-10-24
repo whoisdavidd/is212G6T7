@@ -15,7 +15,6 @@ const customJestConfig = {
   transform: {
     '^.+\\.mjs$': 'babel-jest', // Transform .mjs files using Babel
   },
-  extensionsToTreatAsEsm: ['.mjs'], // Treat .mjs files as ESM
 };
 
 module.exports = createJestConfig(customJestConfig);

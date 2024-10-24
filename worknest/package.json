@@ -53,7 +53,8 @@
     "yarn": "^1.22.22"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.25.7",
+    "@babel/core": "^7.25.9",
+    "@babel/preset-env": "^7.25.9",
     "@babel/preset-react": "^7.25.7",
     "@chromatic-com/storybook": "^1.9.0",
     "@storybook/addon-essentials": "^8.2.9",
