@@ -39,10 +39,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r .github/workflows/requirements.txt
+
     - name: Generate .env file
       run: |
-      
-          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.DB_PASSWORD }}@worknest.cr0a4u0u8ytj.ap-southeast-1.rds.amazonaws.com:5432/postgres'" > worknest/src/app/backend/.env
+          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}localhost:5432/postgres'" > worknest/src/app/backend/.env
         
     # Install PostgreSQL development headers (libpq-dev)
     - name: Install dependencies for psycopg2
@@ -61,15 +61,23 @@ jobs:
         docker exec backend-micro_request-1  pytest
         docker exec backend-micro_schedule-1  pytest
       
-        
+     # Install Node.js (for Jest tests)
+   # Install Node.js (for Jest tests)
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.14'
+
+ # Install Node.js dependencies
+    - name: Install Node.js dependencies
+      run: |
+        yarn install
+
+ # Run Jest functional tests
+    - name: Run Jest tests
+      run: |
+        yarn run jest
 
 
-
-
-    # # Run Tests (if applicable)
-    # - name: Run tests
-    #   run: |
-    #     # Run your unit tests or integration tests here
-    #     docker exec -it <your_microservice_container_name> pytest
 
   
