@@ -58,9 +58,9 @@ jobs:
     - name: List installed Node.js packages
       run: yarn list --pattern jest
  
-     # Run Jest tests
+    # Run Jest tests
     - name: Run Jest tests
-      run: yarn run test
+      run: yarn jest
 
     - name: Generate .env file
       run: |
