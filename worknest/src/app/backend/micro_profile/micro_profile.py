@@ -117,8 +117,8 @@ def get_employee_profile(staff_id):
 
 # ------------------------------ Get manager details ------------------------------
 
-@app.route("/managers/<int:staff_id>", methods=['GET'])
-def get_managers(staff_id):
+@app.route("/manager/<int:staff_id>", methods=['GET'])
+def get_manager(staff_id):
     """
     Get manager details by staff ID
     ---
@@ -158,53 +158,6 @@ def get_managers(staff_id):
     except Exception as e:
         logger.error(f"Error fetching manager details: {str(e)}")
         return jsonify({"error": "Failed to fetch manager details"}), 500
-
-@app.route('/managers/<int:manager_id>/team', methods=['GET'])
-def get_manager_team(manager_id):
-    """
-    Get manager's team by manager ID
-    ---
-    parameters:
-      - name: manager_id
-        in: path
-        type: integer
-        required: true
-        description: The staff ID of the manager
-    responses:
-      200:
-        description: Manager's team
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              staff_id:
-                type: integer
-              staff_fname:
-                type: string
-              staff_lname:
-                type: string
-              department:
-                type: string
-              position:
-                type: string
-              location:
-                type: string
-      404:
-        description: Manager not found
-      500:
-        description: Failed to fetch manager's team
-    """
-    logger.info(f"Request received to fetch team for manager_id {manager_id}.")
-    try:
-        team_members = Profile.query.filter_by(reporting_manager_id=manager_id).all()
-        logger.info(f"Fetched team for manager_id {manager_id}.")
-        team_members_data = [member.to_dict() for member in team_members]
-        return jsonify(team_members_data), 200
-    except Exception as e:
-        logger.error(f"Error fetching manager's team: {str(e)}")
-        return jsonify({"error": "Failed to fetch manager's team"}), 500
-
 
 # ------------------------------ Get all profiles ------------------------------
 

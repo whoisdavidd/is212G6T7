@@ -29,6 +29,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { Button, ButtonGroup } from '@mui/material';
 import { useRouter } from 'next/router';
+import EventDialog from './EventDialog'; // Import the EventDialog component
 
 const StatusLabel = styled(Box)(({ status }) => ({
     display: 'inline-block',
@@ -81,7 +82,7 @@ const getWeekDates = (startDate) => {
     return dates;
 };
 
-const ManagerTable = () => {
+const ManagerDashboard = () => {
     const [staffId, setStaffId] = useState(null);
     const [department, setDepartment] = useState(null);
     const [schedules, setSchedules] = useState([]);
@@ -95,6 +96,7 @@ const ManagerTable = () => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [dateFilter, setDateFilter] = useState(null);
     const [selectedWeekStart, setSelectedWeekStart] = useState(getStartOfCurrentWeek());
+    const [isEventDialogOpen, setIsEventDialogOpen] = useState(false); // State for EventDialog
 
     // Retrieve sessionStorage data on client-side and ensure staffId is updated correctly
     useEffect(() => {
@@ -145,12 +147,14 @@ const ManagerTable = () => {
                     ...new Set(schedules.map((sched) => sched.staff_id)),
                 ];
                 if (staffIds.length === 0) {
+                    toast.info('No team schedules found.');
                     setProfiles([]);
                     return;
                 }
                 const profilePromises = staffIds.map((id) =>
                     axios.get(`http://127.0.0.1:5002/profile/${id}`)
                 );
+
                 const profileResponses = await Promise.all(profilePromises);
                 const profilesData = profileResponses.map((res) => res.data);
                 setProfiles(profilesData);
@@ -279,6 +283,12 @@ const ManagerTable = () => {
             default:
                 router.push('/Manager');
         }
+    const handleOpenEventDialog = () => {
+        setIsEventDialogOpen(true);
+    };
+
+    const handleCloseEventDialog = () => {
+        setIsEventDialogOpen(false);
     };
 
     return (
@@ -297,6 +307,7 @@ const ManagerTable = () => {
                     View Requests
                 </Button>
             </ButtonGroup>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Typography variant="h4" gutterBottom>
                 Manager Dashboard
             </Typography>
@@ -318,14 +329,18 @@ const ManagerTable = () => {
                     </Button>
                 </Grid>
                 <Grid item xs>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
                         <DatePicker
                             label="Filter by Date"
                             value={dateFilter ? dayjs(dateFilter) : null}
                             onChange={handleDateFilterChange}
                             renderInput={(params) => <TextField {...params} fullWidth />}
                         />
-                    </LocalizationProvider>
+                </Grid>
+                {/* New Button to Open Event Dialog */}
+                <Grid item>
+                    <Button variant="contained" color="primary" onClick={handleOpenEventDialog}>
+                        Add Event
+                    </Button>
                 </Grid>
             </Grid>
 
@@ -467,9 +482,17 @@ const ManagerTable = () => {
                 </Box>
             </Modal>
 
+            {/* Event Dialog */}
+            <EventDialog
+                open={isEventDialogOpen}
+                onClose={handleCloseEventDialog}
+            />
+
             <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />
+            </LocalizationProvider>
         </>
     );
+
 };
 
-export default ManagerTable;
+export default ManagerDashboard;

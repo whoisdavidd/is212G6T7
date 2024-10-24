@@ -48,7 +48,7 @@ class Event(db.Model):
         }
     
 
-# ------------------------------ Events ------------------------------
+# ------------------------------ Get All Events ------------------------------
 
 @app.route('/events', methods=['GET'])
 def get_all_events():
@@ -82,6 +82,52 @@ def get_all_events():
     except Exception as e:
         logger.error(f"Error fetching events: {str(e)}")
         return jsonify({"error": "Failed to fetch events"}), 500
+    
+# ------------------------------ Get Events by Department ------------------------------
+@app.route('/events/<department>', methods=['GET'])
+def get_events_by_department(department):
+    logger.info(f"Request received to fetch events for department: {department}")
+    try:
+        events = Event.query.filter_by(department=department).all()
+        logger.info(f"Fetched {len(events)} events successfully for department: {department}")
+        return jsonify([event.to_dict() for event in events]), 200
+    except Exception as e:
+        logger.error(f"Error fetching events for department {department}: {str(e)}")
+        return jsonify({"error": f"Failed to fetch events for department {department}"}), 500
+    
+# ------------------------------ Add Event ------------------------------
+@app.route('/events', methods=['POST'])
+def add_event():
+    logger.info("Request received to add an event.")
+    try:
+        data = request.get_json()
+        new_event = Event(**data)
+        db.session.add(new_event)
+        db.session.commit()
+        logger.info(f"Event added successfully: {new_event.to_dict()}")
+        return jsonify(new_event.to_dict()), 201
+    except Exception as e:
+        logger.error(f"Error adding event: {str(e)}")
+        return jsonify({"error": "Failed to add event"}), 500
+
+# ------------------------------ Delete Event ------------------------------
+@app.route('/events/<int:event_id>', methods=['DELETE'])
+def delete_event(event_id):
+    logger.info(f"Request received to delete event with ID: {event_id}")
+    try:
+        event = Event.query.get(event_id)
+        if not event:
+            logger.error(f"Event with ID {event_id} not found")
+            return jsonify({"error": "Event not found"}), 404
+        db.session.delete(event)
+        db.session.commit()
+        logger.info(f"Event deleted successfully: {event_id}")
+        return jsonify({"message": "Event deleted successfully"}), 200
+    except Exception as e:
+        logger.error(f"Error deleting event: {str(e)}")
+        return jsonify({"error": "Failed to delete event"}), 500
+  
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
