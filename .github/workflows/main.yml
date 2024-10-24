@@ -39,11 +39,7 @@ jobs:
       - name: Install Node.js dependencies
         run: yarn install
 
-      # Generate .env file
-      - name: Generate .env file
-        run: |
-          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/postgres'" > worknest/src/app/backend/.env
-
+  
   # Job 2: Run Docker-based tests
   docker_tests:
     runs-on: ubuntu-latest
@@ -64,6 +60,11 @@ jobs:
       # Checkout code (if needed)
       - name: Checkout code
         uses: actions/checkout@v3
+       # Generate .env file
+      - name: Generate .env file
+        run: |
+         echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/postgres'" > worknest/src/app/backend/.env
+
 
       # Start Docker services and run tests
       - name: Build and run Docker images
