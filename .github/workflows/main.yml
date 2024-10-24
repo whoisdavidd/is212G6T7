@@ -50,7 +50,7 @@ jobs:
       run: yarn list --pattern jest
 
     - name: Run Jest tests
-      run: yarn run test 
+      run: yarn jest 
 
     # Install dependencies
     - name: Install dependencies
