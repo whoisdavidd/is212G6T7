@@ -65,7 +65,7 @@ jobs:
         # Run Jest tests
     - name: Run Jest tests 
       run: |
-        yarn jest --verbose --silent=false --no-cache --debug --testMatch='<rootDir>/worknest/src/app/test/*.test.mjs'    
+        yarn jest --verbose --silent=false --testMatch='<rootDir>/worknest/src/app/test/*.test.mjs'    
     # - name: Install dependencies for psycopg2
     #   run: |
     #     sudo apt-get update
