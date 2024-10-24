@@ -1,11 +1,11 @@
-const nextJest = require('next/jest');
+import nextJest from 'next/jest.js';
 
 const createJestConfig = nextJest({
   dir: './', // Tells Jest to use the Next.js root directory
 });
 
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.mjs'],
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
@@ -18,4 +18,4 @@ const customJestConfig = {
   transformIgnorePatterns: ['<rootDir>/node_modules/'], // Ensure node_modules are not transformed
 };
 
-module.exports = createJestConfig(customJestConfig);
+export default createJestConfig(customJestConfig);
