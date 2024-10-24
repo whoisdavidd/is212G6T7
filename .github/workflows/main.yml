@@ -3,52 +3,15 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - SCRUMS-38-Integrating-EC2-containers
+      - SCRUMS-38-Integrating-EC2-containers  # Change trigger to the Scrum branch
   pull_request:
     branches:
-      - SCRUMS-38-Integrating-EC2-containers
+      - SCRUMS-38-Integrating-EC2-containers  # Change trigger to the Scrum branch
 
 jobs:
-  # Job 1: Set up environment and install dependencies
-  setup:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      # Checkout the code
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      # Install Python dependencies
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r .github/workflows/requirements.txt
-
-      # Set up Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.14'
-
-      # Install Node.js dependencies
-      - name: Install Node.js dependencies
-        run: yarn install
-
-      # Generate .env file
-      - name: Generate .env file
-        run: |
-
-          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/postgres'" >> worknest/src/app/backend/.env
-
-  # Job 2: Run Docker-based tests
-  docker_tests:
-    runs-on: ubuntu-latest
-    needs: setup  # This job depends on the 'setup' job
+    timeout-minutes: 10  # Set a reasonable timeout (10 minutes here)
 
     services:
       postgres:
@@ -59,52 +22,66 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: postgres
+        options: --memory=1g  # Limit memory to 1GB for the Postgres service
+
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+
+
+
+    # Set up Python
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+     # Run Jest tests after Python tests
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+       node-version: '20.14'
+       
+    - name: Install Node.js dependencies
+      run: yarn install
       
-    steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Run Jest tests
+      run: yarn run jest
 
-      # Verify .env file exists before Docker Compose is run
-      - name: Verify .env file
-        run: ls -al worknest/src/app/backend/
+    # Install dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .github/workflows/requirements.txt
 
-      # Start Docker services and run tests
-      - name: Build and run Docker images
-        run: |
-          docker compose --env-file worknest/src/app/backend/.env -f worknest/src/app/backend/compose.yaml up -d
+    - name: Generate .env file
+      run: |
+          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}localhost:5432/postgres'" > worknest/src/app/backend/.env
+        
+    # # Install PostgreSQL development headers (libpq-dev)
+    # - name: Install dependencies for psycopg2
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y libpq-dev gcc
+    # Install Node.js
+    
 
-      # Run tests in backend microservices
-      - name: Run backend-micro_profile tests
-        run: docker exec backend-micro_profile-1 pytest
+    # Build Docker images (if using Docker)
+    - name: Build Docker image
+      run: |
+        docker compose  --env-file worknest/src/app/backend/.env -f worknest/src/app/backend/compose.yaml up -d
+         # Run tests in microservices
+        docker exec backend-micro_profile-1  pytest
+        docker exec backend-micro_event-1  pytest
+        docker exec backend-micro_request-1  pytest
+        docker exec backend-micro_schedule-1  pytest
+  
 
-      - name: Run backend-micro_event tests
-        run: docker exec backend-micro_event-1 pytest
 
-      - name: Run backend-micro_request tests
-        run: docker exec backend-micro_request-1 pytest
+   
 
-      - name: Run backend-micro_schedule tests
-        run: docker exec backend-micro_schedule-1 pytest
 
-      # Shut down Docker containers after tests
-      - name: Shut down Docker containers
-        run: docker compose down
 
-  # Job 3: Run Jest tests
-  jest_tests:
-    runs-on: ubuntu-latest
-    needs: setup  # This job depends on the 'setup' job
 
-    steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Ensure Node.js is set up and Jest is installed
-      - name: Install Jest dependencies
-        run: yarn install
-
-      # Run Jest tests
-      - name: Run Jest tests
-        run: yarn run jest
+  
