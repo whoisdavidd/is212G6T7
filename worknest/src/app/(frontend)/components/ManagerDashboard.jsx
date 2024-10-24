@@ -28,7 +28,7 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { Button, ButtonGroup } from '@mui/material';
-import { useRouter } from 'next/router';
+import ManagerViewRequests from '../components/ManagerViewRequests';
 import EventDialog from './EventDialog'; // Import the EventDialog component
 
 const StatusLabel = styled(Box)(({ status }) => ({
@@ -97,6 +97,7 @@ const ManagerDashboard = () => {
     const [dateFilter, setDateFilter] = useState(null);
     const [selectedWeekStart, setSelectedWeekStart] = useState(getStartOfCurrentWeek());
     const [isEventDialogOpen, setIsEventDialogOpen] = useState(false); // State for EventDialog
+    const [view, setView] = useState('personal'); // Manage the selected view state
 
     // Retrieve sessionStorage data on client-side and ensure staffId is updated correctly
     useEffect(() => {
@@ -270,173 +271,185 @@ const ManagerDashboard = () => {
         setSelectedWeekStart(nextWeek);
     };
 
-    const router = useRouter();
-    
-    const onViewChange = (view) => {
-        switch(view) {
-            case 'personal':
-                router.push('/Manager');
-                break;
-            case 'team':
-                router.push('/Manager/viewRequests');
-                break;
-            default:
-                router.push('/Manager');
-        }
     const handleOpenEventDialog = () => {
         setIsEventDialogOpen(true);
+
     };
 
     const handleCloseEventDialog = () => {
         setIsEventDialogOpen(false);
+
+    };
+
+    const onViewChange = (selectedView) => {
+        setView(selectedView); // Update the view state based on the button clicked
     };
 
     return (
         <>
+            <Typography variant="h4" gutterBottom>
+                Manager Dashboard
+            </Typography>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
                 <Button 
                     onClick={() => onViewChange('personal')}
-                    variant={router.pathname === '/Manager' ? 'contained' : 'outlined'}
+                    variant={view === 'personal' ? 'contained' : 'outlined'}
                 >
                     View Schedule
                 </Button>
                 <Button 
                     onClick={() => onViewChange('team')}
-                    variant={router.pathname === '/Manager/viewRequests' ? 'contained' : 'outlined'}
+                    variant={view === 'team' ? 'contained' : 'outlined'}
                 >
                     View Requests
                 </Button>
             </ButtonGroup>
+
+            {view === 'personal' && (
+                <div>
+                    {/* Render personal schedule content here */}
+                </div>
+            )}
+
+            {view === 'team' && (
+                <div>
+                    {/* Render team requests content here */}
+                    <ManagerViewRequests />
+                </div>
+            )}
+
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Typography variant="h4" gutterBottom>
-                Manager Dashboard
-            </Typography>
 
-            <Grid container spacing={2} alignItems="center">
-                <Grid item>
-                    <Button variant="contained" onClick={handlePrevWeek}>
-                        Previous Week
-                    </Button>
+            {view === 'personal' && (
+                <div>
+                    <Grid container spacing={2} alignItems="center">
+                    <Grid item>
+                        <Button variant="contained" onClick={handlePrevWeek}>
+                            Previous Week
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Typography variant="body1">
+                            {selectedWeekStart.format('MMM D, YYYY')} - {selectedWeekStart.add(4, 'day').format('MMM D, YYYY')}
+                        </Typography>
+                    </Grid>
+                    <Grid item>
+                        <Button variant="contained" onClick={handleNextWeek}>
+                            Next Week
+                        </Button>
+                    </Grid>
+                    <Grid item xs>
+                            <DatePicker
+                                label="Filter by Date"
+                                value={dateFilter ? dayjs(dateFilter) : null}
+                                onChange={handleDateFilterChange}
+                                renderInput={(params) => <TextField {...params} fullWidth />}
+                            />
+                    </Grid>
+                    {/* New Button to Open Event Dialog */}
+                    <Grid item>
+                        <Button variant="contained" color="primary" onClick={handleOpenEventDialog}>
+                            Add Event
+                        </Button>
+                    </Grid>
                 </Grid>
-                <Grid item>
-                    <Typography variant="body1">
-                        {selectedWeekStart.format('MMM D, YYYY')} - {selectedWeekStart.add(4, 'day').format('MMM D, YYYY')}
-                    </Typography>
-                </Grid>
-                <Grid item>
-                    <Button variant="contained" onClick={handleNextWeek}>
-                        Next Week
-                    </Button>
-                </Grid>
-                <Grid item xs>
-                        <DatePicker
-                            label="Filter by Date"
-                            value={dateFilter ? dayjs(dateFilter) : null}
-                            onChange={handleDateFilterChange}
-                            renderInput={(params) => <TextField {...params} fullWidth />}
-                        />
-                </Grid>
-                {/* New Button to Open Event Dialog */}
-                <Grid item>
-                    <Button variant="contained" color="primary" onClick={handleOpenEventDialog}>
-                        Add Event
-                    </Button>
-                </Grid>
-            </Grid>
-
-            <Box sx={{ mt: 4 }}>
-                <Bar data={barChartData} />
-            </Box>
-
-            <TableContainer component={Paper} sx={{ mt: 4 }}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'staff_fname'}
-                                    direction={sortConfig.direction}
-                                    onClick={() => handleSort('staff_fname')}
-                                >
-                                    Name
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'position'}
-                                    direction={sortConfig.direction}
-                                    onClick={() => handleSort('position')}
-                                >
-                                    Position
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'department'}
-                                    direction={sortConfig.direction}
-                                    onClick={() => handleSort('department')}
-                                >
-                                    Department
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'date'}
-                                    direction={sortConfig.direction}
-                                    onClick={() => handleSort('date')}
-                                >
-                                    Date
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'location'}
-                                    direction={sortConfig.direction}
-                                    onClick={() => handleSort('location')}
-                                >
-                                    Work Location
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortConfig.key === 'status'}
-                                    direction={sortConfig.direction}
-                                    onClick={() => handleSort('status')}
-                                >
-                                    Status
-                                </TableSortLabel>
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredData
-                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                            .map((schedule) => (
-                                <TableRow key={`${schedule.staff_id}-${schedule.date}`} onClick={() => handleOpen(schedule)} style={{ cursor: 'pointer' }}>
-                                    <TableCell>{`${schedule.staff_fname} ${schedule.staff_lname}`}</TableCell>
-                                    <TableCell>{schedule.position}</TableCell>
-                                    <TableCell>{schedule.department}</TableCell>
-                                    <TableCell>{schedule.date}</TableCell>
-                                    <TableCell>{schedule.location}</TableCell>
-                                    <TableCell>
-                                        <StatusLabel status={schedule.status}>
-                                            {schedule.status}
-                                        </StatusLabel>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                    </TableBody>
-                </Table>
-                <TablePagination
-                    component="div"
-                    count={filteredData.length}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    rowsPerPageOptions={[5, 10, 25]}
-                />
-            </TableContainer>
+    
+                <Box sx={{ mt: 4 }}>
+                    <Bar data={barChartData} />
+                </Box>
+    
+                <TableContainer component={Paper} sx={{ mt: 4 }}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortConfig.key === 'staff_fname'}
+                                        direction={sortConfig.direction}
+                                        onClick={() => handleSort('staff_fname')}
+                                    >
+                                        Name
+                                    </TableSortLabel>
+                                </TableCell>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortConfig.key === 'position'}
+                                        direction={sortConfig.direction}
+                                        onClick={() => handleSort('position')}
+                                    >
+                                        Position
+                                    </TableSortLabel>
+                                </TableCell>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortConfig.key === 'department'}
+                                        direction={sortConfig.direction}
+                                        onClick={() => handleSort('department')}
+                                    >
+                                        Department
+                                    </TableSortLabel>
+                                </TableCell>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortConfig.key === 'date'}
+                                        direction={sortConfig.direction}
+                                        onClick={() => handleSort('date')}
+                                    >
+                                        Date
+                                    </TableSortLabel>
+                                </TableCell>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortConfig.key === 'location'}
+                                        direction={sortConfig.direction}
+                                        onClick={() => handleSort('location')}
+                                    >
+                                        Work Location
+                                    </TableSortLabel>
+                                </TableCell>
+                                <TableCell>
+                                    <TableSortLabel
+                                        active={sortConfig.key === 'status'}
+                                        direction={sortConfig.direction}
+                                        onClick={() => handleSort('status')}
+                                    >
+                                        Status
+                                    </TableSortLabel>
+                                </TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredData
+                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                .map((schedule) => (
+                                    <TableRow key={`${schedule.staff_id}-${schedule.date}`} onClick={() => handleOpen(schedule)} style={{ cursor: 'pointer' }}>
+                                        <TableCell>{`${schedule.staff_fname} ${schedule.staff_lname}`}</TableCell>
+                                        <TableCell>{schedule.position}</TableCell>
+                                        <TableCell>{schedule.department}</TableCell>
+                                        <TableCell>{schedule.date}</TableCell>
+                                        <TableCell>{schedule.location}</TableCell>
+                                        <TableCell>
+                                            <StatusLabel status={schedule.status}>
+                                                {schedule.status}
+                                            </StatusLabel>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                        </TableBody>
+                    </Table>
+                    <TablePagination
+                        component="div"
+                        count={filteredData.length}
+                        page={page}
+                        onPageChange={handleChangePage}
+                        rowsPerPage={rowsPerPage}
+                        onRowsPerPageChange={handleChangeRowsPerPage}
+                        rowsPerPageOptions={[5, 10, 25]}
+                    />
+                </TableContainer>
+                </div>
+                )}
+            
 
             {/* Schedule Details Modal */}
             <Modal
@@ -494,5 +507,4 @@ const ManagerDashboard = () => {
     );
 
 };
-
 export default ManagerDashboard;

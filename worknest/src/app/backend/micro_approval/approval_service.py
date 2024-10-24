@@ -193,13 +193,13 @@ def approve_request():
         )
 
         # Send RabbitMQ messages for each requested date
-        send_rabbitmq_message(
-            'Approved',
-            request_record.requester_email,
-            request_record.reporting_manager_email,
-            requested_date.isoformat(),  # Use the current requested_date
-            approver_comment,
-        )
+        # send_rabbitmq_message(
+        #     'Approved',
+        #     request_record.requester_email,
+        #     request_record.reporting_manager_email,
+        #     requested_date.isoformat(),  # Use the current requested_date
+        #     approver_comment,
+        # )
 
         # Create a new entry in the schedule table for each requested date
         new_schedule_entry = ScheduleModel(

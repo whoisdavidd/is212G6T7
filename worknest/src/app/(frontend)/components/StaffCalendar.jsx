@@ -25,7 +25,7 @@ export default function StaffCalendar({ onViewChange }) {
 
     const fetchRequests = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:5003/requests/${staffId}`);
+        const response = await fetch(`http://127.0.0.1:5003/staffRequests/${staffId}`);
         if (!response.ok) throw new Error('Failed to fetch requests');
 
         const data = await response.json();

@@ -36,7 +36,7 @@ export default function FullFeaturedCrudGrid() {
 
   const fetchEventData = async (staffId) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5003/requests/${staffId}`);
+      const response = await fetch(`http://127.0.0.1:5003/staffRequests/${staffId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch requests');

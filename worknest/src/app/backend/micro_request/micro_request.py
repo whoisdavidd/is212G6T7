@@ -346,10 +346,10 @@ def get_manager_requests(manager_id):
     """
     logger.info(f"[GET] /manager_requests/{manager_id} - Received request to fetch requests for manager_id {manager_id}.")
     try:
-        # profile_service_url = "http://localhost:5002/managers/{manager_id}/team"
+        profile_service_url = f"http://localhost:5002/managers/{manager_id}/team"
         
         #comment above and use below url when using docker    
-        profile_service_url = f"http://micro_profile:5000/managers/{manager_id}/team"
+        # profile_service_url = f"http://micro_profile:5000/managers/{manager_id}/team"
         response = requests.get(profile_service_url)
         if response.status_code != 200:
             logger.error(f"[GET] /requests/manager/{manager_id} - Failed to fetch team members from Profile service for manager_id {manager_id}.")

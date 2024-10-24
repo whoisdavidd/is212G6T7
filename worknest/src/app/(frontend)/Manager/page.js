@@ -2,9 +2,10 @@
 import React from 'react';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import Sidebar from '../components/Sidebar';
-import ManagerTable from '../components/ManagerDashboard';
 import '../../styles/App.css';
 import { Button } from '@mui/material';
+import ManagerDashboard from '../components/ManagerDashboard';
+// import ManagerViewRequests from '../components/ManagerViewRequests';
 
 // function Manager() {
 //     return (
@@ -29,14 +30,14 @@ function Manager() {
     return (
         <div className="App">
             <ResponsiveAppBar />
+            {/* Add a button to redirect to the Staff page */}
+            <button onClick={redirectToStaffPage}>
+                Go to Staff Page
+            </button>
             <div className="staff-calendar-page">
                 <Sidebar />
                 <div className="main-content">
-                    <ManagerTable />
-                    {/* Add a button to redirect to the Staff page */}
-                    <button onClick={redirectToStaffPage}>
-                        Go to Staff Page
-                    </button>
+                    <ManagerDashboard />
                 </div>
             </div>
         </div>
