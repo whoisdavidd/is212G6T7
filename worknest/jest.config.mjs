@@ -1,21 +1,16 @@
 import nextJest from 'next/jest.js';
 
 const createJestConfig = nextJest({
-  dir: './', // Tells Jest to use the Next.js root directory
+  dir: './', // Points to your Next.js root directory
 });
 
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.mjs'],
-  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.mjs'], // Ensure jest-dom is set up
+  testEnvironment: 'jsdom', // Use jsdom for browser-like testing environment
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-    
+    '^@/(.*)$': '<rootDir>/$1', // Adjust path aliasing if needed
   },
-  // Ensure Jest matches .test.mjs files
-  testMatch: ['<rootDir>/src/app/test/**/*.test.mjs'],
-  extensionsToTreatAsEsm: ['.ts', '.tsx'], // No need for .mjs, it's handled automatically
-  // Use next/jest for handling file transformations
-  // Tell Jest to treat .mjs files as ES modules
+  testMatch: ['<rootDir>/src/app/test/**/*.test.mjs'], // Ensure .test.mjs files are matched
   transformIgnorePatterns: ['<rootDir>/node_modules/'], // Ensure node_modules are not transformed
 };
 
