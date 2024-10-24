@@ -60,7 +60,9 @@ jobs:
  
     # Run Jest tests
     - name: Run Jest tests
-      run: ./node_modules/.bin/jest
+      run: |
+        cd worknest
+        ./node_modules/.bin/jest
 
     - name: Generate .env file
       run: |
