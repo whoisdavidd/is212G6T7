@@ -12,6 +12,8 @@ const customJestConfig = {
   },
   // Ensure Jest matches .test.mjs files
   testMatch: ['<rootDir>/src/app/test/**/*.test.mjs'],
+
+  // Use next/jest for handling file transformations
   // Tell Jest to treat .mjs files as ES modules
   transformIgnorePatterns: ['<rootDir>/node_modules/'], // Ensure node_modules are not transformed
 };
