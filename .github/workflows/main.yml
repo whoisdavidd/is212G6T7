@@ -55,8 +55,8 @@ jobs:
     - name: Generate .env file
       run: |
           echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}localhost:5432/postgres'" > worknest/src/app/backend/.env
-          - name: Install Node.js dependencies
-          run: yarn install
+    - name: Install Node.js dependencies
+      run: yarn install
      
         # Verify that Jest is installed
     - name: List installed Node.js packages
