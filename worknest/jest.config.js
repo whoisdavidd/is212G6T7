@@ -12,6 +12,10 @@ const customJestConfig = {
   },
   // Correct testMatch to look for .test.mjs files
   testMatch: ['<rootDir>/src/app/test/*.test.mjs'], // Adjusted to match .test.mjs files
+  transform: {
+    '^.+\\.mjs$': 'babel-jest', // Transform .mjs files using Babel
+  },
+  extensionsToTreatAsEsm: ['.mjs'], // Treat .mjs files as ESM
 };
 
 module.exports = createJestConfig(customJestConfig);
