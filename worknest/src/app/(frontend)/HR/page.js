@@ -45,7 +45,7 @@ const HR = () => {
         const response = await fetch("http://127.0.0.1:5002/barchart"); // Ensure Flask server is running
         const data = await response.json();
         setBarChartData(data.seriesData); // Assuming data.seriesData is an array
-        setXLabels(data.xLabels); // Assuming data.xLabels is an array of department labels
+        setXLabels(data.xLabels); // Assuming data.xLabels is an   array of department labels
       } catch (error) {
         console.error("Error fetching BarChart data:", error);
       }
