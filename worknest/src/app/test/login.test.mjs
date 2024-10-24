@@ -1,6 +1,6 @@
 // login.test.mjs
 const { render, screen, fireEvent, waitFor } = require('@testing-library/react');
-import HomePage from 'worknest/src/app/page.js';
+const HomePage = require('worknest/src/app/page.js'); // Use require instead of import
 
 global.fetch = jest.fn(() =>
   Promise.resolve({
