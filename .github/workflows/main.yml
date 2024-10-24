@@ -22,6 +22,7 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: postgres
+        options: --memory=1g  # Limit memory to 1GB for the Postgres service
 
     steps:
     # Checkout the code
@@ -44,11 +45,11 @@ jobs:
       run: |
           echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}localhost:5432/postgres'" > worknest/src/app/backend/.env
         
-    # # Install PostgreSQL development headers (libpq-dev)
-    # - name: Install dependencies for psycopg2
-    #   run: |
-    #     sudo apt-get update
-    #     sudo apt-get install -y libpq-dev gcc
+    # Install PostgreSQL development headers (libpq-dev)
+    - name: Install dependencies for psycopg2
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpq-dev gcc
 
 
     # Build Docker images (if using Docker)
@@ -60,8 +61,7 @@ jobs:
         docker exec backend-micro_event-1  pytest
         docker exec backend-micro_request-1  pytest
         docker exec backend-micro_schedule-1  pytest
-      
-     # Install Node.js (for Jest tests)
+  
    # Install Node.js (for Jest tests)
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -77,6 +77,10 @@ jobs:
     - name: Run Jest tests
       run: |
         yarn run jest
+    # Shut down containers after Python tests
+    - name: Shut down Docker containers
+      run: docker compose down
+
 
 
 
