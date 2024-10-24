@@ -42,7 +42,7 @@ jobs:
       # Generate .env file
       - name: Generate .env file
         run: |
-          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}localhost:5432/postgres'" > worknest/src/app/backend/.env
+          echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/postgres'" > worknest/src/app/backend/.env
 
   # Job 2: Run Docker-based tests
   docker_tests:
@@ -61,16 +61,16 @@ jobs:
         options: --memory=1g
 
     steps:
-      # Checkout code (you may not need this if the workspace is shared)
+      # Checkout code (if needed)
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Build Docker images and run tests for each microservice
+      # Start Docker services and run tests
       - name: Build and run Docker images
         run: |
           docker compose --env-file worknest/src/app/backend/.env -f worknest/src/app/backend/compose.yaml up -d
 
-      # Run tests in the backend microservices
+      # Run tests in backend microservices
       - name: Run backend-micro_profile tests
         run: docker exec backend-micro_profile-1 pytest
 
@@ -83,7 +83,7 @@ jobs:
       - name: Run backend-micro_schedule tests
         run: docker exec backend-micro_schedule-1 pytest
 
-      # Shut down containers after tests
+      # Shut down Docker containers after tests
       - name: Shut down Docker containers
         run: docker compose down
 
@@ -93,9 +93,13 @@ jobs:
     needs: setup  # This job depends on the 'setup' job
 
     steps:
-      # Checkout code (you may not need this if the workspace is shared)
+      # Checkout code (if needed)
       - name: Checkout code
         uses: actions/checkout@v3
+
+      # Ensure Node.js is set up and Jest is installed
+      - name: Install Jest dependencies
+        run: yarn install
 
       # Run Jest tests
       - name: Run Jest tests
