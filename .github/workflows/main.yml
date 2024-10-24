@@ -3,10 +3,10 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - SCRUMS-38-Integrating-EC2-containers  # Change trigger to the Scrum branch
   pull_request:
     branches:
-      - main
+      - SCRUMS-38-Integrating-EC2-containers  # Change trigger to the Scrum branch
 
 jobs:
   build:
