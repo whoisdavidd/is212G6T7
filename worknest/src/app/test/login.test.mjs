@@ -1,5 +1,5 @@
 // login.test.mjs
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+const { render, screen, fireEvent, waitFor } = require('@testing-library/react');
 import HomePage from '../page.js';
 
 global.fetch = jest.fn(() =>
