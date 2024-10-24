@@ -60,7 +60,7 @@ jobs:
  
      # Run Jest tests
     - name: Run Jest tests
-      run: yarn jest
+      run: yarn run test
 
     - name: Generate .env file
       run: |
