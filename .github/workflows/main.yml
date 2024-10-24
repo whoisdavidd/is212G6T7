@@ -65,7 +65,7 @@ jobs:
         # Run Jest tests
     - name: Run Jest tests 
       run: |
-          yarn run jest --verbose --silent=false worknest/src/app/test
+          yarn run jest --verbose --silent=false yarn run jest --verbose --silent=false --testMatch='<rootDir>/worknest/src/app/test/*.test.mjs'
     # # Install PostgreSQL development headers (libpq-dev)
     # - name: Install dependencies for psycopg2
     #   run: |
