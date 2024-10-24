@@ -1,2 +1,2 @@
-// jest.setup.js
+// jest.setup.mjs
 import '@testing-library/jest-dom';
