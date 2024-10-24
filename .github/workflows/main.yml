@@ -32,7 +32,7 @@ jobs:
     # Add Swap Space
     - name: Add swap space
       run: |
-        sudo fallocate -l 24G /swapfile  # Allocate 24GB of swap space
+        sudo fallocate -l 8G /swapfile  # Allocate 8GB of swap space
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
         sudo swapon /swapfile
