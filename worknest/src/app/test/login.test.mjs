@@ -1,5 +1,6 @@
 const { render, screen, fireEvent, waitFor } = require('@testing-library/react');
-const HomePage = require('../page.js').default; // Use require to access the default export
+const React = require('react');
+const HomePage = require('../page.js').default; // Access default export via require
 
 // Mocking fetch globally to simulate an error response
 global.fetch = jest.fn(() =>
@@ -9,10 +10,14 @@ global.fetch = jest.fn(() =>
   })
 );
 
+// Mock window.location.href to prevent actual navigation during test
+delete window.location;
+window.location = { href: '' };
+
 describe('HomePage Functional Test', () => {
   test('displays error message and does not log in', async () => {
-    // Render the HomePage component
-    render(<HomePage />);
+    // Use React.createElement to render the component without JSX
+    render(React.createElement(HomePage));
 
     // Simulate entering email and password
     fireEvent.change(screen.getByPlaceholderText('Email'), {
