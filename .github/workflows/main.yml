@@ -29,6 +29,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # Add Swap Space
+    - name: Add swap space
+      run: |
+        sudo fallocate -l 2G /swapfile  # Allocate 2GB of swap space
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+        sudo swapon --show  # Show swap summary
+
+
     # Set up Python
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -45,11 +55,11 @@ jobs:
       run: |
           echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}localhost:5432/postgres'" > worknest/src/app/backend/.env
         
-    # Install PostgreSQL development headers (libpq-dev)
-    - name: Install dependencies for psycopg2
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libpq-dev gcc
+    # # Install PostgreSQL development headers (libpq-dev)
+    # - name: Install dependencies for psycopg2
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y libpq-dev gcc
 
 
     # Build Docker images (if using Docker)
