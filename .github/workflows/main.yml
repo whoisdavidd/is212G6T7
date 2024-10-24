@@ -60,7 +60,7 @@ jobs:
  
      # Run Jest tests
     - name: Run Jest tests
-      run: yarn run test 
+      run: yarn run jest worknest/src/app/test
 
     - name: Generate .env file
       run: |
