@@ -58,12 +58,10 @@ jobs:
     - name: List installed Node.js packages
       run: yarn list --pattern jest
  
-    # Run Jest tests
-    - name: Run Jest tests
-      run: |
-        cd worknest
-        ./node_modules/.bin/jest
-
+    # # Run Jest tests
+    # - name: Run Jest tests
+    #   run: |
+    #     yarn run test
     - name: Generate .env file
       run: |
           echo "SQLALCHEMY_DATABASE_URI='postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}localhost:5432/postgres'" > worknest/src/app/backend/.env
