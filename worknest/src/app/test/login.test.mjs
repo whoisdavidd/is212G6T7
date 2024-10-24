@@ -1,7 +1,7 @@
-// login.test.mjs
 const { render, screen, fireEvent, waitFor } = require('@testing-library/react');
-const HomePage = require('worknest/src/app/page.js'); // Use require instead of import
+const HomePage = require('../page.js').default; // Use require to access the default export
 
+// Mocking fetch globally to simulate an error response
 global.fetch = jest.fn(() =>
   Promise.resolve({
     ok: false,
@@ -11,8 +11,10 @@ global.fetch = jest.fn(() =>
 
 describe('HomePage Functional Test', () => {
   test('displays error message and does not log in', async () => {
+    // Render the HomePage component
     render(<HomePage />);
 
+    // Simulate entering email and password
     fireEvent.change(screen.getByPlaceholderText('Email'), {
       target: { value: 'Narah.Loo@allinone.com.sg' },
     });
@@ -20,15 +22,19 @@ describe('HomePage Functional Test', () => {
       target: { value: '123' },
     });
 
+    // Simulate clicking the Login button
     fireEvent.click(screen.getByText('Login'));
 
+    // Wait for the error message to appear after the failed login attempt
     await waitFor(() => {
       expect(screen.getByText('An error occurred. Please try again.')).toBeInTheDocument();
     });
 
+    // Assert that the email and password input fields are still in the document
     expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
 
+    // Assert that the URL does not contain any of the protected routes (like /Staff, /Manager, /dashboard)
     expect(window.location.href).not.toContain('/Staff');
     expect(window.location.href).not.toContain('/Manager');
     expect(window.location.href).not.toContain('/dashboard');
